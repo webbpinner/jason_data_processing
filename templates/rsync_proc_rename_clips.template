@@ -1,0 +1,306 @@
+KIPRO_4K_DIR="Highlights"
+KIPRO_1080_DIR="KiPro1080"
+VIDEO_FILE_TYPE="*.mov"
+
+CLIPS_2K=0
+CLIPS_TYPE="4K Highlights"
+DATE_PREFIX=`date -u +"%Y-%m-%dT%H-%M-%SZ"`
+
+INTERMEDIATE_DIR_NAME="intermediate_files"
+OUTPUT_BATCH_LIST_TXT_SUFFIX="_batch_list.txt"
+OUTPUT_BATCH_LIST_CSV_SUFFIX="_batch_list.csv"
+FILE_RENAME_SCRIPT_SUFFIX="_file_rename.sh"
+
+OUTPUT_BATCH_LIST_TXT="${DATE_PREFIX}${OUTPUT_BATCH_LIST_TXT_SUFFIX}"
+OUTPUT_BATCH_LIST_CSV="${DATE_PREFIX}${OUTPUT_BATCH_LIST_CSV_SUFFIX}"
+FILE_RENAME_SCRIPT="${DATE_PREFIX}${FILE_RENAME_SCRIPT_SUFFIX}"
+RSYNC_XFER_LOG="${DATE_PREFIX}_rsync_xfer.log"
+TC_METADATA="tcmd.txt"
+
+
+usage(){
+cat <<EOF
+Usage: $0 [-2?] [-s <source_dir>]
+    -s <source_dir> Source directory of clips (if you want this script to copy the files) 
+    -2              These are the 1080HD (2K) clips, the default is 4K
+    -?              Print this statement
+EOF
+}
+
+# printf '#Clip\tStart\tStart\tStart\tDuration\tDuration\tEnd\tEnd\tEnd\tEncoder\n' > $outtxt
+# printf '#Clip,Start,Start,Start,Duration,Duration,End,End,End,Encoder\n' > $outcsv
+
+# printf '#(KiPro)\tDT\tEpoch\tString\tDec\tInt\tDT\tEpoch\tString\tType\n' >> $outtxt
+# printf '#(KiPro),DT,Epoch,String,Dec,Int,DT,Epoch,String,Type\n' >> $outcsv
+
+
+while getopts ":2s:" opt; do
+  case $opt in
+   2)
+      CLIPS_2K=1
+      CLIPS_TYPE="1080 HD always-on recordings"
+      ;;
+   s)
+	  if [ -d ${OPTARG} ]; then
+	    SOURCE_DIR=${OPTARG}
+	  else
+	    echo ""
+	    echo "Source directory: \"${OPTARG}\" doesn't exist" 
+	    echo ""
+	    exit 0
+      fi
+      ;;
+	 
+   \?)
+      usage
+      exit 0
+      ;;
+  esac
+done
+
+shift $((OPTIND-1))
+
+if [ ${CLIPS_2K} == 1 ]; then
+  DEST_DIR=${LOWERINGDIR}/${KIPRO_1080_DIR}
+else
+  DEST_DIR=${LOWERINGDIR}/${KIPRO_4K_DIR}
+fi
+
+INTERMEDIATE_FILES_DIR=${DEST_DIR}/${INTERMEDIATE_DIR_NAME}
+
+echo "-----------------------------------------------------"
+if [ $SOURCE_DIR ]; then
+	echo "Source Dir:" ${SOURCE_DIR}
+fi
+echo "Destination Dir:" ${DEST_DIR}
+echo "Video Clip Type:" ${CLIPS_TYPE}
+echo "Intermediate Files Dir:" ${INTERMEDIATE_FILES_DIR}
+echo "Batch File (csv):" ${INTERMEDIATE_FILES_DIR}/${OUTPUT_BATCH_LIST_CSV}
+echo "Batch File (txt):" ${INTERMEDIATE_FILES_DIR}/${OUTPUT_BATCH_LIST_TXT}
+echo "-----------------------------------------------------"
+read -p "Continue? (Y/N): " confirm && [[ $confirm == [Yy] || $confirm == [Yy][Ee][Ss] ]] || exit 1
+
+
+if [ ! -d ${DEST_DIR} ]; then
+	read -p "Destination directory not found. Create it? (Y/N): " confirm && [[ $confirm == [Yy] || $confirm == [Yy][Ee][Ss] ]] || exit 0
+	mkdir -p ${DEST_DIR}
+	if [ ! -d ${DEST_DIR} ]; then
+		echo "Unable to create destination directory... quitting"
+		exit 1
+	fi
+fi
+
+if [ ${SOURCE_DIR} ]; then
+	echo "Copying files..."
+	rsync -aiv --log-file=${INTERMEDIATE_FILES_DIR}/${RSYNC_XFER_LOG} --include="${VIDEO_FILE_TYPE}" --exclude="*" ${SOURCE_DIR}/ $DEST_DIR/ 
+	echo "Done"
+fi
+
+find -f ${DEST_DIR}/*.mov &> /dev/null || echo "No files to process"; echo "Quitting..."; exit 0
+
+echo "Creating .txt/.csv batch_list files..."
+printf '#Clip\tStart\tStart\tStart\tDuration\tDuration\tEnd\tEnd\tEnd\tEncoder\n' > ${INTERMEDIATE_FILES_DIR}/${OUTPUT_BATCH_LIST_TXT}
+printf '#(KiPro)\tDT\tEpoch\tString\tDec\tInt\tDT\tEpoch\tString\tType\n' >> ${INTERMEDIATE_FILES_DIR}/${OUTPUT_BATCH_LIST_TXT}
+
+printf '#Clip,Start,Start,Start,Duration,Duration,End,End,End,Encoder\n' > ${INTERMEDIATE_FILES_DIR}/$OUTPUT_BATCH_LIST_CSV
+printf '#(KiPro),DT,Epoch,String,Dec,Int,DT,Epoch,String,Type\n' >> ${INTERMEDIATE_FILES_DIR}/$OUTPUT_BATCH_LIST_CSV
+
+printf '#!/bin/bash\n' > ${INTERMEDIATE_FILES_DIR}/${FILE_RENAME_SCRIPT}
+
+
+FILE_COUNT=0
+for inclip in ${DEST_DIR}/*.mov; do
+
+	# Clear away a file from previous processing, if it exists.
+	if [ -e ${INTERMEDIATE_FILES_DIR}/${TC_METADATA} ]; then
+		rm ${INTERMEDIATE_FILES_DIR}/${TC_METADATA}
+	fi
+
+	echo "Processing $inclip"
+
+	# Get the clip name for later use
+	cn=`basename $inclip`
+
+	# Spawn ffprobe from the ffmpeg suite. ffprobe extracts the metadata of the clip, which is then written to a file.
+	ffprobe -show_streams:tcmd $inclip >& ${INTERMEDIATE_FILES_DIR}/${TC_METADATA}
+
+	# echo "TC_METADATA"
+	# cat ${INTERMEDIATE_FILES_DIR}/${TC_METADATA}
+	# grep timecode
+
+	# Pull lines from the file and extract date and time from them.
+
+	tcstr=`grep timecode ${INTERMEDIATE_FILES_DIR}/${TC_METADATA} | tail -1`
+	# echo "tcstr: ${tcstr}"
+
+	if [[ $tcstr =~ ^TAG:timecode=([[:digit:]][[:digit:]]):([[:digit:]][[:digit:]]):([[:digit:]][[:digit:]]):[[:digit:]][[:digit:]] ]]; then
+	    tchr=`echo ${tcstr} | cut -c 14-15`
+	    tcmi=`echo ${tcstr} | cut -c 17-18`
+	    tcse=`echo ${tcstr} | cut -c 20-21`
+
+	    # echo ${tchr}:${tcmi}:${tcse}
+	    # fr = ${BASH_REMATCH[4]}
+
+	    tchms=$(IFS= ; echo "${BASH_REMATCH[*]:1:3}")
+	    # echo "tchms: ${tchms}"
+
+	fi
+
+	# Get the date from the creation time. Don't use hour minute second because
+	# creation_time is likely set from device system time, and it is almost
+	# certainly less accurate than our NTP-disciplined timecode generator.
+	# In fact, I don't like getting date from this source but it's the only source
+	# we have.
+
+	# It appears that the video creation time is given last, and also give sthe
+	# time the file is closed. Since that could happen that day after the recording
+	# is started, get both dates. If it proves necessary, the end date can be used
+	# against the calculation of clip end time from start plus duration.
+
+	ctstart=`grep TAG\:creation_time ${INTERMEDIATE_FILES_DIR}/${TC_METADATA} | head -1`
+	#TAG:creation_time=2018-09-16T11:18:53.000000Z
+	# echo "ctstart: ${ctstart}"
+
+	if [[ $ctstart =~ ^TAG:creation_time=[[:digit:]][[:digit:]][[:digit:]][[:digit:]]-[[:digit:]][[:digit:]]-[[:digit:]][[:digit:]]T[[:digit:]][[:digit:]]:[[:digit:]][[:digit:]]:[[:digit:]][[:digit:]].[[:digit:]][[:digit:]][[:digit:]][[:digit:]][[:digit:]][[:digit:]]Z ]]; then
+	   byr=`echo ${ctstart} | cut -c 19-22`
+	   bmo=`echo ${ctstart} | cut -c 24-25`
+	   bdy=`echo ${ctstart} | cut -c 27-28`
+
+	   ctstart_ymd=$(IFS= ; echo "${BASH_REMATCH[*]:1:3}")
+	#   echo $ctstart_ymd
+	else
+	   echo "Problem extracting clip creation time" 
+	fi
+
+	ctstop=`grep creation_time ${INTERMEDIATE_FILES_DIR}/${TC_METADATA} | tail -1`
+	#TAG:creation_time=2018-09-16T11:18:53.000000Z
+	# echo "ctstop: ${ctstop}"
+
+	if [[ $ctstop =~ ^TAG:creation_time=[[:digit:]][[:digit:]][[:digit:]][[:digit:]]-[[:digit:]][[:digit:]]-[[:digit:]][[:digit:]]T[[:digit:]][[:digit:]]:[[:digit:]][[:digit:]]:[[:digit:]][[:digit:]].[[:digit:]][[:digit:]][[:digit:]][[:digit:]][[:digit:]][[:digit:]]Z ]]; then
+	   eyr=`echo ${ctstop} | cut -c 19-22`
+	   emo=`echo ${ctstart} | cut -c 24-25`
+	   edy=`echo ${ctstart} | cut -c 27-28`
+
+	   ctstop_ymd=$(IFS= ; echo "${BASH_REMATCH[*]:1:3}")
+	#   echo $ctstop_ymd
+	else
+	   echo "Problem extracting video creation time" 
+	fi
+
+	# Get clip duration in seconds
+
+	dur=`grep Duration ${INTERMEDIATE_FILES_DIR}/${TC_METADATA}`
+	#  Duration: 00:00:08.27, start: 0.000000, bitrate: 16622 kb/s
+	# echo "dur: ${dur}"
+
+	if [[ $dur =~ ^[[:space:]][[:space:]]Duration:[[:space:]][[:digit:]][[:digit:]]:[[:digit:]][[:digit:]]:[[:digit:]][[:digit:]].[[:digit:]][[:digit:]].* ]]; then
+	   dhr=`echo ${dur} | cut -c 11-12`
+	   dmi=`echo ${dur} | cut -c 14-15`
+	   dse=`echo ${dur} | cut -c 17-21`
+
+	   # echo "$dhr $dmi $dse"
+	else
+	   echo "Problem extracting duration"
+	fi
+
+	# Convert duration to seconds. Calculate both floating pt and integer
+	# seconds. FP for accuracy and integer because 'date' can't make use
+	# of the decimal portion of seconds.
+
+	# Use a regexp to pull integer seconds from decimal seconds
+	# echo "dse: $dse"
+	if [[ $dse =~ ([[:digit:]][[:digit:]]).[[:digit:]][[:digit:]] ]]; then
+	   dsei=${BASH_REMATCH[1]}
+	   dsei=$(echo "$dsei 0" | perl -MList::Util=sum -alne 'print sum @F')
+	else
+	   echo "Problem converting decimal seconds $dse to integer seconds"
+	fi
+
+	# 2017/01/25 SJM sometimes a number is prepended with a '0' char after parsing.
+	# This can be confused as an octal or hex number. To enforce that it's decimal,
+	# one can prepend "10#" to the string representing the number.
+
+	dhr2secs=$((10#$dhr * 3600))
+	dmi2secs=$((10#$dmi * 60))
+	dhr_dmi_secs=$((dhr2secs + dmi2secs))
+	dsecsi=$((dhr_dmi_secs + dsei))
+	dsecsf=$(echo "$dhr_dmi_secs $dse" | perl -MList::Util=sum -alne 'print sum @F')
+	echo "Clip duration is $dsecsf seconds."
+	echo "Will use $dsecsi seconds to compute clip end datetime and to create filename."
+	  
+	# Convert clip start time to unix epoch seconds. MacOSX date command has
+	# different invocation format than linux.
+	datestr=$(printf '%s-%s-%s %s:%s:%s' "$byr" "$bmo" "$bdy" "$tchr" "$tcmi" "$tcse")
+	#echo $datestr
+	bsecs=$(date -j -f "%Y-%m-%d %H:%M:%S" "$datestr" "+%s")
+	bstr1=$(date -j -f "%Y-%m-%d %H:%M:%S" "$datestr" "+%Y/%m/%d %H:%M:%S")
+	bstr2=$(date -j -f "%Y-%m-%d %H:%M:%S" "$datestr" "+%Y%m%d%H%M%S")
+
+	echo "Clip start time is $bstr1, $bsecs unix seconds"
+
+	# Now add clip start time and duration seconds, convert back to a date string 
+	#date -j -f "%a %b %d %T %Z %Y" "`date`" "+%s"   # man page example
+	esecs=$((bsecs + dsecsi))
+	# echo "Clip end epoch secs is $esecs"
+	estr1=$(date -j -r $esecs "+%Y/%m/%d %H:%M:%S")
+	estr2=$(date -j -r $esecs "+%Y%m%d%H%M%S")
+
+	echo "Clip end time is $estr1, $esecs unix seconds"
+
+	################## Output section ###################
+	#
+	# Create a table for use in building the final metadata collection.
+
+	# Pull the codec from the clips metyadata fork
+	encgr=`grep TAG\:encoder ${INTERMEDIATE_FILES_DIR}/${TC_METADATA}`
+
+	if [[ $encgr =~ ProRes ]]; then
+
+	   if [[ $encgr =~ LT ]]; then
+	       enc="ProRes422LT"
+	   else
+	       enc="ProRes422"
+	   fi
+	else
+	  echo "Unknown encoding"
+	fi
+
+	printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' "$cn" "$bstr1" "$bsecs" "$bstr2" "$dsecsf" "$dsecsi" "$estr1" "$esecs" "$estr2" "$enc" >> ${INTERMEDIATE_FILES_DIR}/${OUTPUT_BATCH_LIST_TXT}
+	printf '%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n' "$cn" "$bstr1" "$bsecs" "$bstr2" "$dsecsf" "$dsecsi" "$estr1" "$esecs" "$estr2" "$enc" >> ${INTERMEDIATE_FILES_DIR}/${OUTPUT_BATCH_LIST_CSV}
+
+	NEW_FILENAME="${LOWERING}_${bstr2}-${estr2}.mov"
+	if [ ${cn} != ${NEW_FILENAME} && ${cn} != "*.mov" ]; then 
+		printf 'mv -v ../%s ../%s\n' "$cn" "$NEW_FILENAME" >> ${INTERMEDIATE_FILES_DIR}/${FILE_RENAME_SCRIPT}
+	fi
+
+	FILE_COUNT=$((${FILE_COUNT}+1))
+done
+
+echo "Processed ${FILE_COUNT} file(s)."
+
+chmod +x ${INTERMEDIATE_FILES_DIR}/${FILE_RENAME_SCRIPT}
+
+# Clear away a file from previous processing, if it exists.
+if [ -e ${INTERMEDIATE_FILES_DIR}/${TC_METADATA} ]; then
+	rm ${INTERMEDIATE_FILES_DIR}/${TC_METADATA}
+fi
+
+ln -sf ${INTERMEDIATE_FILES_DIR}/${OUTPUT_BATCH_LIST_TXT} ${INTERMEDIATE_FILES_DIR}/latest${OUTPUT_BATCH_LIST_TXT_SUFFIX}
+ln -sf ${INTERMEDIATE_FILES_DIR}/${OUTPUT_BATCH_LIST_CSV} ${INTERMEDIATE_FILES_DIR}/latest${OUTPUT_BATCH_LIST_CSV_SUFFIX}
+ln -sf ${INTERMEDIATE_FILES_DIR}/${FILE_RENAME_SCRIPT} ${INTERMEDIATE_FILES_DIR}/latest${FILE_RENAME_SCRIPT_SUFFIX}
+
+pico ${INTERMEDIATE_FILES_DIR}/${FILE_RENAME_SCRIPT}
+
+read -p "Proceed with rename? (Y/N): " confirm && [[ $confirm == [Yy] || $confirm == [Yy][Ee][Ss] ]] || exit 1
+
+# Save the shell's current pwd
+_D="$(pwd)"
+
+# Goto the script directory and run the script
+cd ${INTERMEDIATE_FILES_DIR}
+./${FILE_RENAME_SCRIPT}
+
+# Return to the previous working directory
+cd "${_D}"
+
+echo "done"

@@ -1,0 +1,6 @@
+for DATE in ${DATES[@]}; do
+	for DATA_TYPE in ${DATA_TYPES[@]}; do
+		echo "${SCRIPTDIR}/data_parse ${BASEDIR} Rawdata Procdata ${CRUISEID} ${DATA_TYPE} ${DATE}"
+#        sleep 5
+	done
+done

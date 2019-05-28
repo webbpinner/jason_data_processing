@@ -1,0 +1,13 @@
+
+
+# Set the array of destinations to backup the cruise data to
+# Destinations can take the form of:
+#  - '/Volumes/Backup\ HD/' --> Backup to the root of an external HDD Named 'Backup HD'
+#  - '/Volumes/Backup\ HD/CRUISE_BACKUP/' --> Backup to the /CRUISE_BACKUP directory of an external HDD Named 'Backup HD'
+#  - 'user:pass@192.168.1.241:/cruise_data/' --> Backup to the /cruise_data directory of an remote Linux/Mac machine 
+
+DESTINATIONS = []
+
+for DEST in ${DESTINATIONS[@]}; do
+	rsync -avi --Progress ${CRUISEDIR} DEST
+done
