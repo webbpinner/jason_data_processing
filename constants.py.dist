@@ -1,6 +1,12 @@
 
 import os
 
+# URL for the Sealog Server
+serverURL = 'https://<ip address>:<port number>/sealog-server'
+
+# JWT for a cruise_manager or admin account on the Sealog Server.
+token = ""
+
 # location of DSL scripts and other 3rd party tools used in the scripts created by the templates
 scriptDir = '/usr/local/bin'
 
@@ -37,13 +43,10 @@ loweringMakeLoweringScriptName = '<lowering_id>_make_lowering.sh'
 # name of template-derived script for processing Highlight and KiPro1080 video clips for a particular lowering
 loweringClipRenameScriptName = '<lowering_id>_proc_clips.sh'
 
-# name of template-derived script for processing SuliusCam images for a particular lowering
-loweringSuliusRenameScriptName = '<lowering_id>_proc_sulius.sh'
-
-
+# name of template-derived script for processing SulisCam images for a particular lowering
+loweringSulisRenameScriptName = '<lowering_id>_proc_sulis.sh'
 
 # MASTER SET, Do not delete/uncomment/modify... make a copy, uncomment it and modify that!
-#dslogDataTypes = [ "456", "alt", "csv", "ct1", "ct2", "ctm", "dep", "eh1", "hfb", "hfp", "hfr", "hmr", "lbl", "lss", "oct", "oos", "pns", "svp", "sys"]
+# dslogDataTypes = [ "ALT", "CSV", "CT1", "CT2", "CTM", "DEP", "EH1", "HFB", "HFP", "HFR", "HMR", "LSS", "OCT", "OOS", "SVP", "SYS"]
 
-dslogDataTypes = [ "456", "ALT", "CSV", "CT1", "CT2", "CTM", "DEP", "EH1", "HFB", "HFP", "HFR", "HMR", "LBL", "LSS", "OCT", "OOS", "PNS", "SVP", "SYS"]
-
+dslogDataTypes = [ "ALT", "CSV", "CT1", "CT2", "CTM", "DEP", "EH1", "HFB", "HFP", "HFR", "HMR", "LSS", "OCT", "OOS", "SVP", "SYS"]

@@ -1,42 +1,53 @@
-NAVEST_DIR=${CRUISEDIR}/RawData/Navest
+####################################################################
+# This template builds a script to pulls data from the dlog1 and
+# Navest machines to the appropriate raw data directory for the
+# specified cruise.
+#
+# Created 2019/06/01 JWP
+#
+#######################################################################
 
-if [ ! -d ${NAVEST_DIR} ]; then
-    echo "${NAVEST_DIR} doesn't exist- mkdir'ing"
-    mkdir -p ${NAVEST_DIR}
-    mkdir -p ${NAVEST_DIR}/targets
-    mkdir -p ${NAVEST_DIR}/dvlsend
-    mkdir -p ${NAVEST_DIR}/backup
-    mkdir -p ${NAVEST_DIR}/backup/navest_ini
-    mkdir -p ${NAVEST_DIR}/backup/navg_ini
+VEHICLEBASEDIR=${BASEDIR}/${CRUISEID}/Vehicle
+
+NAVEST_DIR=${VEHICLEBASEDIR}/${RAWDIR}/Navest
+
+if [ ! -d ${VEHICLEBASEDIR}/${RAWDIR} ]; then
+  echo "ERROR: the directory ${VEHICLEBASEDIR}/${RAWDIR} does not exist"
+  exit 1
 fi
-
-echo "Getting the target files for cruise $CRUISEID"
-rsync -av jason@198.17.154.225:/home/jason/cruises/$CRUISEID/targets/ ${NAVEST_DIR}/targets
-
-echo "Getting the map files for cruise $CRUISEID"
-rsync -av jason@198.17.154.225:/home/jason/cruises/$CRUISEID/maps/ ${NAVEST_DIR}/maps
 
 for DATE in ${DATES[@]}; do
 
-	year=`echo ${DATE} | awk '{y=substr($1,1,4); print y}'`
-	month=`echo ${DATE} | awk '{m=substr($1,5,2); print m}'`
-	day=`echo ${DATE} | awk '{d=substr($1,7,2); print d}'`
+  year=`echo ${DATE} | awk '{y=substr($1,1,4); print y}'`
+  month=`echo ${DATE} | awk '{m=substr($1,5,2); print m}'`
+  day=`echo ${DATE} | awk '{d=substr($1,7,2); print d}'`
 
-	echo "Processing ${year}-${month}-${day}"
+  echo "Processing ${year}-${month}-${day}"
 
-	DLOG1DESTDIR=${CRUISEDIR}/RawData/${DATE}
+  DLOG1DESTDIR=${VEHICLEBASEDIR}/${RAWDIR}/${DATE}
 
-	if [ ! -d ${DLOG1DESTDIR} ]; then
-	    echo "${DLOG1DESTDIR} doesn't exist- mkdir'ing"
-	    mkdir -p ${DLOG1DESTDIR}
-	fi
+  if [ ! -d ${DLOG1DESTDIR} ]; then
+    echo "${DLOG1DESTDIR} doesn't exist- mkdir'ing"
+    mkdir -p ${DLOG1DESTDIR}
+  fi
 
-	echo "Getting new day=${DATE} files from dlog1 using rsync"
-	echo "Placing them in ${DLOG1DESTDIR}"
-	rsync -avi --Progress data:dsldata1@198.17.154.201:/data/${DATE}* ${DLOG1DESTDIR}
+  echo "Getting files from dlog1 using rsync"
+  echo "Placing them in ${DLOG1DESTDIR}"
+  rsync -avi --Progress data:dsldata1@198.17.154.201:/data/${DATE}* ${DLOG1DESTDIR}
 
-	echo "Getting Navest .DAT files for date ${targetyear}${targetmonth}${targetday}"
-	rsync -avi --Progress jason@198.17.154.225:/data/nav/${year}${month}${day}_* $NAVEST_DIR
-	echo ""
+  echo "Getting .DAT files from Navest using rsync"
+  rsync -avi --Progress jason@198.17.154.225:/data/nav/${year}${month}${day}_* ${NAVEST_DIR}
+  echo ""
 
 done
+
+if [ ! -d ${NAVEST_DIR} ]; then
+  echo "ERROR: the directory ${NAVEST_DIR} does not exist"
+  exit 1
+fi
+
+echo "Getting the target files for cruise ${CRUISEID}"
+rsync -avi --Progress jason@198.17.154.225:/home/jason/cruises/${CRUISEID}/targets/ ${NAVEST_DIR}/targets
+
+echo "Getting the map files for cruise ${CRUISEID}"
+rsync -avi --Progress jason@198.17.154.225:/home/jason/cruises/${CRUISEID}/maps/ ${NAVEST_DIR}/maps

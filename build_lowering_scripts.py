@@ -3,11 +3,12 @@ import sys
 import datetime
 import os
 import stat
+import math
 
 sys.path.append('.')
 
 from sealog import Sealog
-from constants import baseDir, loweringBaseDir, loweringProcDataScriptName, loweringMakeLoweringScriptName, loweringClipRenameScriptName, loweringSuliusRenameScriptName, scriptDir, templatesDir, dslogDataTypes
+from constants import baseDir, rawDir, procDir, loweringBaseDir, loweringProcDataScriptName, loweringMakeLoweringScriptName, loweringClipRenameScriptName, loweringSulisRenameScriptName, scriptDir, templatesDir, dslogDataTypes
 from utils import build_confirmation_menu
 
 Sealog = Sealog()
@@ -40,7 +41,7 @@ if not os.path.isdir(loweringDir):
 scriptFN = loweringProcDataScriptName.replace('<lowering_id>', lowering['lowering_id'])
 scriptPath = os.path.join(loweringDir, "scripts", scriptFN)
 
-if not os.path.isfile(scriptPath) or build_confirmation_menu("\nProcessing script: " + scriptFN + ", already exists.  Rebuild it?", defaultResponse=False):
+if not os.path.isfile(scriptPath) or build_confirmation_menu("\n" + scriptFN + " already exists.  Rebuild it?", defaultResponse=False):
 
     loweringStart = datetime.datetime.strptime(lowering['start_ts'], "%Y-%m-%dT%H:%M:%S.%fZ")
     loweringStop = datetime.datetime.strptime(lowering['stop_ts'], "%Y-%m-%dT%H:%M:%S.%fZ")
@@ -65,10 +66,16 @@ if not os.path.isfile(scriptPath) or build_confirmation_menu("\nProcessing scrip
                 f.write("# Processes dlog data for all days of the lowering               \n")
                 f.write("# ---------------------------------------------------------------\n")
                 f.write("\n")
+                f.write("# Directory where the script is being run from\n")
+                f.write("_D=\"$(pwd)\"\n\n")
                 f.write("# From constants.py\n")
                 f.write("SCRIPTDIR=" + scriptDir + "\n\n")
                 f.write("# From constants.py\n")
-                f.write("BASEDIR=" + os.path.join(cruiseDir, "Vehicle") + "\n\n")
+                f.write("BASEDIR=" + baseDir + "\n\n")
+                f.write("# From constants.py\n")
+                f.write("RAWDIR=" + rawDir + "\n\n")
+                f.write("# From constants.py\n")
+                f.write("PROCDIR=" + procDir + "\n\n")
                 f.write("# From Sealog\n")
                 f.write("CRUISEID=" + cruise['cruise_id'] + "\n\n")
                 f.write("# From Sealog\n")
@@ -80,6 +87,8 @@ if not os.path.isfile(scriptPath) or build_confirmation_menu("\nProcessing scrip
                 f.write("# Start of template proc_lowering_by_day.template\n\n")
                 for line in t:
                     f.write(line)
+                f.write("\n\n# Return the directory where the script was called from\n")
+                f.write("cd ${_D}\n")
 
         st = os.stat(scriptPath)
         os.chmod(scriptPath, st.st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
@@ -91,14 +100,21 @@ if not os.path.isfile(scriptPath) or build_confirmation_menu("\nProcessing scrip
 scriptFN = loweringMakeLoweringScriptName.replace('<lowering_id>', lowering['lowering_id'])
 scriptPath = os.path.join(loweringDir, "scripts", scriptFN)
 
-if not os.path.isfile(scriptPath) or build_confirmation_menu("\nProcessing script: " + scriptFN + ", already exists.  Rebuild it?", defaultResponse=False):
+if not os.path.isfile(scriptPath) or build_confirmation_menu("\n" + scriptFN + " already exists.  Rebuild it?", defaultResponse=False):
 
     print("\nBuilding", scriptFN + "...")
 
     loweringStart = datetime.datetime.strptime(lowering['start_ts'], "%Y-%m-%dT%H:%M:%S.%fZ")
     loweringOnBottom = datetime.datetime.strptime(lowering['lowering_additional_meta']['milestones']['lowering_on_bottom'], "%Y-%m-%dT%H:%M:%S.%fZ") if lowering['lowering_additional_meta']['milestones'] else ""
-    loweringOffBottom = datetime.datetime.strptime(lowering['lowering_additional_meta']['milestones']['lowering_off_bottom'], "%Y-%m-%dT%H:%M:%S.%fZ") + datetime.timedelta(hours=1) if lowering['lowering_additional_meta']['milestones'] else ""
-    loweringStop = datetime.datetime.strptime(lowering['stop_ts'], "%Y-%m-%dT%H:%M:%S.%fZ") + datetime.timedelta(hours=1)
+    loweringOffBottom = datetime.datetime.strptime(lowering['lowering_additional_meta']['milestones']['lowering_off_bottom'], "%Y-%m-%dT%H:%M:%S.%fZ") if lowering['lowering_additional_meta']['milestones'] else ""
+    loweringStop = datetime.datetime.strptime(lowering['stop_ts'], "%Y-%m-%dT%H:%M:%S.%fZ")
+
+    delta = loweringStop - loweringStart # timedelta
+    filePrefixes = []
+
+    for hour in range(math.floor(delta.seconds/3600)):
+        # print("hour:", hour)
+        filePrefixes.append((loweringStart + datetime.timedelta(hours=hour)).strftime("%Y%m%d_%H00"))     
 
     try:
 
@@ -110,24 +126,32 @@ if not os.path.isfile(scriptPath) or build_confirmation_menu("\nProcessing scrip
                 f.write("# Runs make_lowering script with appropriate parameters          \n")
                 f.write("# ---------------------------------------------------------------\n")
                 f.write("\n")
+                f.write("# Directory where the script is being run from\n")
+                f.write("_D=\"$(pwd)\"\n\n")
                 f.write("# From constants.py\n")
                 f.write("SCRIPTDIR=" + scriptDir + "\n\n")
                 f.write("# From constants.py\n")
-                f.write("export BASEDIR=" + os.path.join(cruiseDir, "Vehicle") + "\n\n")
-                f.write("# From Sealog\n")
-                f.write("export CRUISE=" + cruise['cruise_id'] + "\n\n")
-                f.write("# From Sealog\n")
+                f.write("BASEDIR=" + baseDir + "\n\n")
+                f.write("# From constants.py\n")
+                f.write("RAWDIR=" + rawDir + "\n\n")
+                f.write("# From constants.py\n")
+                f.write("PROCDIR=" + procDir + "\n\n")
+                f.write("# From Sealog Cruise Record\n")
+                f.write("CRUISEID=" + cruise['cruise_id'] + "\n\n")
+                f.write("# From Sealog Lowering Record\n")
                 f.write("LOWERINGID=" + lowering['lowering_id'] + "\n\n")
-                f.write("# From constants.py and Sealog\n")
-                f.write("LOWERINGDIR=" + loweringDir + "\n\n")
-                f.write("# From Sealog Lowering record\n")
-                f.write("DIVE_START=" + loweringStart.strftime("%Y%m%d%H00") + "\n")
-                f.write("ON_BOTTOM=" + loweringOnBottom.strftime("%Y%m%d%H00") + "\n")
-                f.write("OFF_BOTTOM=" + loweringOffBottom.strftime("%Y%m%d%H00") + "\n")
-                f.write("DIVE_STOP=" + loweringStop.strftime("%Y%m%d%H00") + "\n\n")
+                f.write("# From Sealog Lowering Record\n")
+                f.write("DIVE_START=" + loweringStart.strftime("%Y%m%d%H%M") + "\n")
+                f.write("ON_BOTTOM=" + loweringOnBottom.strftime("%Y%m%d%H%M") + "\n")
+                f.write("OFF_BOTTOM=" + loweringOffBottom.strftime("%Y%m%d%H%M") + "\n")
+                f.write("DIVE_STOP=" + loweringStop.strftime("%Y%m%d%H%M") + "\n\n")
+                f.write("# From Sealog Lowering Record\n")
+                f.write("FILE_PREFIXES=(\n  \"" + "\"\n  \"".join(filePrefixes) + "\"\n)\n\n")
                 f.write("# Start of template make_lowering.template\n\n")
                 for line in t:
                     f.write(line)
+                f.write("\n\n# Return the directory where the script was called from\n")
+                f.write("cd ${_D}\n")
 
         st = os.stat(scriptPath)
         os.chmod(scriptPath, st.st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
@@ -139,7 +163,7 @@ if not os.path.isfile(scriptPath) or build_confirmation_menu("\nProcessing scrip
 scriptFN = loweringClipRenameScriptName.replace('<lowering_id>', lowering['lowering_id'])
 scriptPath = os.path.join(loweringDir, "scripts", scriptFN)
 
-if not os.path.isfile(scriptPath) or build_confirmation_menu("\nProcessing script: " + scriptFN + ", already exists.  Rebuild it?", defaultResponse=False):
+if not os.path.isfile(scriptPath) or build_confirmation_menu("\n" + scriptFN + " already exists.  Rebuild it?", defaultResponse=False):
 
     print("\nBuilding", scriptFN + "...")
 
@@ -156,30 +180,25 @@ if not os.path.isfile(scriptPath) or build_confirmation_menu("\nProcessing scrip
                 f.write("#!/bin/bash\n")
                 f.write("# ---------------------------------------------------------------\n")
                 f.write("# Processes Highlight and KiPro1080 clips for a lowering         \n")
-                f.write("# Needs to be run twice, once for Highlights, once for KiPro1080 \n")
-                f.write("#  - By default the script will process Highlights.              \n")
-                f.write("#  - Add -2 to process the KiPro1080 files.                      \n")
-                f.write("# See usage message for how to run the script for each video type\n")
                 f.write("# ---------------------------------------------------------------\n")
                 f.write("\n")
+                f.write("# Directory where the script is being run from\n")
+                f.write("_D=\"$(pwd)\"\n\n")
                 f.write("# From constants.py\n")
                 f.write("SCRIPTDIR=" + scriptDir + "\n\n")
                 f.write("# From constants.py\n")
-                f.write("BASEDIR=" + os.path.join(cruiseDir, "Vehicle") + "\n\n")
+                f.write("BASEDIR=" + baseDir + "\n\n")
                 f.write("# From Sealog\n")
                 f.write("CRUISEID=" + cruise['cruise_id'] + "\n\n")
                 f.write("# From Sealog\n")
                 f.write("LOWERINGID=" + lowering['lowering_id'] + "\n\n")
-                f.write("# From constants.py and Sealog\n")
-                f.write("LOWERINGDIR=" + loweringDir + "\n\n")
-                f.write("# From Sealog Lowering record\n")
-                f.write("DIVE_START=" + loweringStart.strftime("%Y%m%d%H00") + "\n")
-                f.write("ON_BOTTOM=" + loweringOnBottom.strftime("%Y%m%d%H00") + "\n")
-                f.write("OFF_BOTTOM=" + loweringOffBottom.strftime("%Y%m%d%H00") + "\n")
-                f.write("DIVE_STOP=" + loweringStop.strftime("%Y%m%d%H00") + "\n\n")
+                f.write("# From constants.py\n")
+                f.write("PROCDIR=" + procDir + "\n\n")
                 f.write("# Start of template rsync_proc_rename_clips.template\n\n")
                 for line in t:
                     f.write(line)
+                f.write("\n\n# Return the directory where the script was called from\n")
+                f.write("cd ${_D}\n")
 
         st = os.stat(scriptPath)
         os.chmod(scriptPath, st.st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
@@ -188,10 +207,10 @@ if not os.path.isfile(scriptPath) or build_confirmation_menu("\nProcessing scrip
         print("ERROR: Could not build script:", scriptPath)
         print(e)
 
-scriptFN = loweringSuliusRenameScriptName.replace('<lowering_id>', lowering['lowering_id'])
+scriptFN = loweringSulisRenameScriptName.replace('<lowering_id>', lowering['lowering_id'])
 scriptPath = os.path.join(loweringDir, "scripts", scriptFN)
 
-if not os.path.isfile(scriptPath) or build_confirmation_menu("\nProcessing script: " + scriptFN + ", already exists.  Rebuild it?", defaultResponse=False):
+if not os.path.isfile(scriptPath) or build_confirmation_menu("\n" + scriptFN + " already exists.  Rebuild it?", defaultResponse=False):
 
     print("\nBuilding", scriptFN + "...")
 
@@ -202,23 +221,27 @@ if not os.path.isfile(scriptPath) or build_confirmation_menu("\nProcessing scrip
 
     try:
 
-        template = os.path.join(templatesDir, "rename_suliuscam_files.template")
+        template = os.path.join(templatesDir, "rename_suliscam_files.template")
         with open(template) as t:
             with open(scriptPath, "w") as f:
                 f.write("#!/bin/bash\n")
                 f.write("# ---------------------------------------------------------------\n")
-                f.write("# Processes SuliusCam still images for a lowering.               \n")
+                f.write("# Processes SulisCam still images for a lowering.               \n")
                 f.write("# ---------------------------------------------------------------\n")
                 f.write("\n")
+                f.write("# Directory where the script is being run from\n")
+                f.write("_D=\"$(pwd)\"\n\n")
                 f.write("# From constants.py\n")
                 f.write("SCRIPTDIR=" + scriptDir + "\n\n")
                 f.write("# From constants.py\n")
-                f.write("BASEDIR=" + cruiseDir + "\n\n")
+                f.write("BASEDIR=" + baseDir + "\n\n")
                 f.write("# From Sealog\n")
                 f.write("LOWERINGID=" + lowering['lowering_id'] + "\n\n")
-                f.write("# Start of template rename_suliuscam_files.template\n\n")
+                f.write("# Start of template rename_suliscam_files.template\n\n")
                 for line in t:
                     f.write(line)
+                f.write("\n\n# Return the directory where the script was called from\n")
+                f.write("cd ${_D}\n")
 
         st = os.stat(scriptPath)
         os.chmod(scriptPath, st.st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)

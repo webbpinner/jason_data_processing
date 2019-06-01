@@ -1,1 +1,88 @@
-${SCRIPTDIR}/make_lowering ${LOWERINGID} ${DIVE_START} ${ON_BOTTOM} ${OFF_BOTTOM} ${DIVE_STOP}
+####################################################################
+# This template builds a script to supercedes the previous
+# "make_lowering" script.
+# 
+# Copies files from <cruise_id>/Vehicle/RawData to the appropriate  
+# subdirectory for the specified lowering.
+#
+# Created 2019/06/01 JWP
+#
+#######################################################################
+
+VEHICLEBASEDIR=${BASEDIR}/${CRUISEID}/Vehicle
+
+LOWERINGDIR=${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${LOWERINGID}
+
+# Reformat the timestrings
+set intime = `echo ${DIVE_START} | awk 'BEGIN{FS=""}{printf "%s%s%s%s-%s%s-%s%s %s%s:%s%s", $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12}'`
+set ontime = `echo ${ON_BOTTOM} | awk 'BEGIN{FS=""}{printf "%s%s%s%s-%s%s-%s%s %s%s:%s%s", $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12}'`
+set offtime = `echo ${OFF_BOTTOM} | awk 'BEGIN{FS=""}{printf "%s%s%s%s-%s%s-%s%s %s%s:%s%s", $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12}'`
+set outtime = `echo ${DIVE_STOP} | awk 'BEGIN{FS=""}{printf "%s%s%s%s-%s%s-%s%s %s%s:%s%s", $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12}'`
+
+if [ ! -d ${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${LOWERINGID} ]; then
+  echo "ERROR: the directory ${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${LOWERINGID} does not exist"
+  exit 1
+fi
+
+echo '*****************************************************' > ${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${LOWERINGID}/low_stats
+echo ' Lowering name/number:   '${LOWERINGID} >> ${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${LOWERINGID}/low_stats
+echo ' Time in water:          '$intime >> ${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${LOWERINGID}/low_stats
+echo ' Time on bottom:         '$ontime >> ${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${LOWERINGID}/low_stats
+echo ' Time off bottom:        '$offtime >> ${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${LOWERINGID}/low_stats
+echo ' Time out of water:      '$outtime >> ${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${LOWERINGID}/low_stats
+echo ' '
+echo '*****************************************************' >> ${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${LOWERINGID}/low_stats
+echo '*****************************************************'
+echo ' Running make_lowering for lowering '${LOWERINGID}
+echo ' '
+echo ' root directory is:      '${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}
+echo ' '
+cat ${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${LOWERINGID}/low_stats
+echo ' '
+echo ' Control C to stop if these values are wrong and you need to reset things.'
+echo ' '
+echo ' Now processing'
+echo ' '
+echo '*****************************************************'
+echo ' '
+
+DATA_DIRS=("ship" "nav" "veh" "csv" "ctd" "ct2" "hfp" "svp" "ctm" "lss" "eh1" "mag" "oos")
+
+for DATA_DIR in ${DATA_DIRS[@]}; do
+
+  if [ -d ./${DATA_DIR} ]; then
+    echo "Processing ${DATA_DIR} files for lowering: ${LOWERINGID}"
+
+    if [ ! -d ${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${LOWERINGID}/${DATA_DIR} ]; then
+      mkdir ${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${LOWERINGID}/${DATA_DIR}
+    fi
+  
+    for PREFIX in ${FILE_PREFIXES[@]}; do
+      if [ ! -f ${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${DATA_DIR}/${PREFIX}.${DATA_DIR} ]; then
+        echo "WARNING: Could not find file: ${PREFIX}.${DATA_DIR}"
+      else
+        cp -f  ${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${DATA_DIR}/${PREFIX}.${DATA_DIR} ${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${LOWERINGID}/$DATA_DIR/
+      fi
+    done
+  else
+    echo "No ${DATA_DIR} data"
+  fi
+done
+
+# Process Navest files
+if [ ! -d ${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${LOWERINGID}/Navest ]; then
+  mkdir ${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${LOWERINGID}/Navest
+fi
+
+NAVEST_SUFFIXES=(".DAT" ".png" "_INI.M")
+
+for SUFFIX in ${NAVEST_SUFFIXES[@]}; do
+  echo "Processing ${SUFFIX} Navest files for lowering: ${LOWERINGID}"
+  for PREFIX in ${FILE_PREFIXES[@]}; do
+    cp -f  ${VEHICLEBASEDIR}/${RAWDIR}/Navest/${PREFIX}*{SUFFIX} ${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${LOWERINGID}/Navest/
+  done
+done
+
+cd ${_D}
+
+echo "Done!"

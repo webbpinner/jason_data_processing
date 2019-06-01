@@ -1,6 +1,258 @@
+####################################################################
+# This template builds a script to supercede the previous
+$ "data_parse" and "data_parse_all" scripts.
+# 
+# Creates daily by-type files and copies the appropriate subset of
+# files to the cooresponding subdirectory for the specified lowering.
+#
+# Created 2019/06/01 JWP
+#
+#######################################################################
+
+VEHICLEBASEDIR=${BASEDIR}/${CRUISEID}/Vehicle
+
+if [ ! -d ${VEHICLEBASEDIR} ]; then
+    echo "ERROR: the directory ${VEHICLEBASEDIR} does not exist"
+    exit 1
+fi
+
+parse_data_type() {
+  source=$1
+  type=$2
+  subDir=$3
+  date=$4
+
+  echo "Parsing ${source} files for type ${type}"
+  
+  cd ${VEHICLEBASEDIR}/${RAWDIR}/${date}
+
+  for file in ${date}*.${source}; do
+    echo "Processing = ${file}"
+    file_base="${file%.*}"
+    if [ -f ${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${LOWERINGID}/${subDir}/${file_base}.${type} ]; then
+      echo "Warning: file ${file_base}.${type} already exists.  Skipping."
+      continue
+    else
+      grep ${type} ${file} | grep -v MDEP > ${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${LOWERINGID}/${subDir}/${file_base}.${type}
+      if [ ! -s ${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${LOWERINGID}/${subDir}/${file_base}.${type} ]; then
+        echo "No data found for type ${type}"
+        rm -f ${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${LOWERINGID}/${subDir}/${file_base}.${type}
+      fi
+    fi
+  end
+
+  cd ${_D}
+
+}
+
 for DATE in ${DATES[@]}; do
-	for DATA_TYPE in ${DATA_TYPES[@]}; do
-		echo "${SCRIPTDIR}/data_parse ${BASEDIR} Rawdata Procdata ${CRUISEID} ${DATA_TYPE} ${DATE}"
-#        sleep 5
-	done
+  for DATA_TYPE in ${DATA_TYPES[@]}; do
+    # ${SCRIPTDIR}/data_parse ${VEHICLEBASEDIR} ${RAWDIR} ${PROCDIR} ${CRUISEID} ${DATA_TYPE} ${DATE}
+
+    case ${DATA_TYPE} in
+
+      "ALT")
+        source=VEH
+        type=${DATA_TYPE}
+        subDir=veh
+        date=${DATE}
+        outfile=${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${LOWERINGID}/${subDir}/${file_base}.${type}
+        parse_data_type ${source} ${type} ${subDir} ${date}
+        if [ -f ${outfile} ]; then
+            #here's where you can do additional stuff to the outfile
+        fi
+        ;;
+
+      "CSV")
+        source=${DATA_TYPE}
+        type=${DATA_TYPE}
+        subDir=csv
+        date=${DATE}
+        outfile=${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${LOWERINGID}/${subDir}/${file_base}.${type}
+        parse_data_type ${source} ${type} ${subDir} ${date}
+        if [ -f ${outfile} ]; then
+            #here's where you can do additional stuff to the outfile
+            cat ${SCRIPTDIR}/csvhead.tx ${outfile} > ${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${LOWERINGID}/${subDir}/${file_base}_tmp.${type}
+            mv ${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${LOWERINGID}/${subDir}/${file_base}_tmp.${type} ${outfile}
+        fi
+        ;;
+
+      "CT1")
+        source=VEH
+        type=${DATA_TYPE}
+        subDir=ctd
+        date=${DATE}
+        outfile=${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${LOWERINGID}/${subDir}/${file_base}.${type}
+        parse_data_type ${source} ${type} ${subDir} ${date}
+        if [ -f ${outfile} ]; then
+            #here's where you can do additional stuff to the outfile
+        fi
+        ;;
+
+      "CT2")
+        source=${DATA_TYPE}
+        type=${DATA_TYPE}
+        subDir=ct2
+        date=${DATE}
+        outfile=${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${LOWERINGID}/${subDir}/${file_base}.${type}
+        parse_data_type ${source} ${type} ${subDir} ${date}
+        if [ -f ${outfile} ]; then
+            #here's where you can do additional stuff to the outfile
+        fi
+        ;;
+
+      "CTM")
+        source=${DATA_TYPE}
+        type=${DATA_TYPE}
+        subDir=ctm
+        date=${DATE}
+        outfile=${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${LOWERINGID}/${subDir}/${file_base}.${type}
+        parse_data_type ${source} ${type} ${subDir} ${date}
+        if [ -f ${outfile} ]; then
+            #here's where you can do additional stuff to the outfile
+        fi
+        ;;
+
+      "DEP")
+        source=VEH
+        type=${DATA_TYPE}
+        subDir=veh
+        date=${DATE}
+        outfile=${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${LOWERINGID}/${subDir}/${file_base}.${type}
+        parse_data_type ${source} ${type} ${subDir} ${date}
+        if [ -f ${outfile} ]; then
+            #here's where you can do additional stuff to the outfile
+        fi
+        ;;
+
+      "EH1")
+        source=${DATA_TYPE}
+        type=${DATA_TYPE}
+        subDir=eh1
+        date=${DATE}
+        outfile=${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${LOWERINGID}/${subDir}/${file_base}.${type}
+        parse_data_type ${source} ${type} ${subDir} ${date}
+        if [ -f ${outfile} ]; then
+            #here's where you can do additional stuff to the outfile
+            cat -v ${outfile} | sed 's/\^M/\n/g' >  ${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${LOWERINGID}/${subDir}/${file_base}_tmp.${type}
+            mv ${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${LOWERINGID}/${subDir}/${file_base}_tmp.${type} ${outfile}
+        fi
+        ;;
+
+      "HFB")
+        source=${DATA_TYPE}
+        type=${DATA_TYPE}
+        subDir=hfp
+        date=${DATE}
+        outfile=${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${LOWERINGID}/${subDir}/${file_base}.${type}
+        parse_data_type ${source} ${type} ${subDir} ${date}
+        if [ -f ${outfile} ]; then
+            #here's where you can do additional stuff to the outfile
+        fi
+        ;;
+
+      "HFP")
+        source=${DATA_TYPE}
+        type=${DATA_TYPE}
+        subDir=hfp
+        date=${DATE}
+        outfile=${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${LOWERINGID}/${subDir}/${file_base}.${type}
+        parse_data_type ${source} ${type} ${subDir} ${date}
+        if [ -f ${outfile} ]; then
+            #here's where you can do additional stuff to the outfile
+        fi
+        ;;
+
+      "HFR")
+        source=${DATA_TYPE}
+        type=${DATA_TYPE}
+        subDir=hfp
+        date=${DATE}
+        outfile=${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${LOWERINGID}/${subDir}/${file_base}.${type}
+        parse_data_type ${source} ${type} ${subDir} ${date}
+        if [ -f ${outfile} ]; then
+            #here's where you can do additional stuff to the outfile
+        fi
+        ;;
+
+      "HMR")
+        source=VEH
+        type=${DATA_TYPE}
+        subDir=mag
+        date=${DATE}
+        outfile=${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${LOWERINGID}/${subDir}/${file_base}.${type}
+        parse_data_type ${source} ${type} ${subDir} ${date}
+        if [ -f ${outfile} ]; then
+            #here's where you can do additional stuff to the outfile
+        fi
+        ;;
+
+      "LSS")
+        source=${DATA_TYPE}
+        type=${DATA_TYPE}
+        subDir=lss
+        date=${DATE}
+        outfile=${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${LOWERINGID}/${subDir}/${file_base}.${type}
+        parse_data_type ${source} ${type} ${subDir} ${date}
+        if [ -f ${outfile} ]; then
+            #here's where you can do additional stuff to the outfile
+        fi
+        ;;
+
+      "OCT")
+        source=VEH
+        type=${DATA_TYPE}
+        subDir=veh
+        date=${DATE}
+        outfile=${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${LOWERINGID}/${subDir}/${file_base}.${type}
+        parse_data_type ${source} ${type} ${subDir} ${date}
+        if [ -f ${outfile} ]; then
+            #here's where you can do additional stuff to the outfile
+        fi
+        ;;
+
+      "OOS")
+        source=${DATA_TYPE}
+        type=${DATA_TYPE}
+        subDir=oos
+        date=${DATE}
+        outfile=${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${LOWERINGID}/${subDir}/${file_base}.${type}
+        parse_data_type ${source} ${type} ${subDir} ${date}
+        if [ -f ${outfile} ]; then
+            #here's where you can do additional stuff to the outfile
+        fi
+        ;;
+
+      "SVP")
+        source=${DATA_TYPE}
+        type=${DATA_TYPE}
+        subDir=svp
+        date=${DATE}
+        outfile=${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${LOWERINGID}/${subDir}/${file_base}.${type}
+        parse_data_type ${source} ${type} ${subDir} ${date}
+        if [ -f ${outfile} ]; then
+            #here's where you can do additional stuff to the outfile
+        fi
+        ;;
+
+      "SYS")
+        source=VEH
+        type=${DATA_TYPE}
+        subDir=sys
+        date=${DATE}
+        outfile=${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${LOWERINGID}/${subDir}/${file_base}.${type}
+        parse_data_type ${source} ${type} ${subDir} ${date}
+        if [ -f ${outfile} ]; then
+            #here's where you can do additional stuff to the outfile
+        fi
+        ;;
+
+      *)
+        echo "Unknown Datatype: ${DATA_TYPE}"
+        ;;
+
+    esac
+
+    sleep 5
+  done
 done

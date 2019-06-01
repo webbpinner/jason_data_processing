@@ -1,12 +1,14 @@
 import json
 import requests
+from constants import serverURL, token
+
 
 class Sealog():
 
   def __init__(self):
 
-    self.serverURL = 'https://sealog-jason.oceandatarat.org:8600/sealog-server'
-    self.token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjU5ODFmMTY3MjEyYjM0OGFlZDdmYjlmNSIsInNjb3BlIjpbInJlYWRfZXZlbnRzIiwid3JpdGVfZXZlbnRzIiwicmVhZF9ldmVudF90ZW1wbGF0ZXMiLCJ3cml0ZV9ldmVudF90ZW1wbGF0ZXMiLCJyZWFkX2NydWlzZXMiLCJyZWFkX2xvd2VyaW5ncyIsIndyaXRlX2NydWlzZXMiLCJ3cml0ZV9sb3dlcmluZ3MiLCJyZWFkX3VzZXJzIiwid3JpdGVfdXNlcnMiXSwicm9sZXMiOlsiZXZlbnRfbWFuYWdlciIsImV2ZW50X2xvZ2dlciIsImV2ZW50X3dhdGNoZXIiLCJjcnVpc2VfbWFuYWdlciJdLCJpYXQiOjE1NTg1NTQ5NzF9.Vs4FeSuyqgxQzX-eJJzQOStIP9MVMLjYoEh2SwsXm2Q"
+    self.serverURL = serverURL
+    self.token = token
 
     self.headers = {
       "authorization": self.token

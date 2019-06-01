@@ -1,4 +1,17 @@
+#####################################################################
+# This template builds a backup script for making additional copies 
+# of the specified cruise data directory
+#
+# Created 2019/06/01 JWP
+#
+#####################################################################
 
+CRUISEDIR=${BASEDIR}/${CRUISEID}
+
+if [ ! -d ${CRUISEDIR} ]; then
+  echo "ERROR: the directory ${CRUISEDIR} does not exist"
+  exit 1
+fi
 
 # Set the array of destinations to backup the cruise data to
 # Destinations can take the form of:
@@ -9,5 +22,5 @@
 DESTINATIONS = []
 
 for DEST in ${DESTINATIONS[@]}; do
-	rsync -avi --Progress ${CRUISEDIR} DEST
+  rsync -avi --Progress ${CRUISEDIR} ${DEST}
 done

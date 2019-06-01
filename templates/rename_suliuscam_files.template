@@ -1,8 +1,0 @@
-files=`ls ${BASEDIR}/StillCamera/${LOWERINGID}/DSC*`
-
-for file in ${files[@]}; do
-	nd=`${SCRIPTDIR}/exiftool -CreateDate $i | cut -c35-53 | tr -d ": "`
-	newname=sulis_{$nd}.jpg
-	echo "Renaming $file to $newname"
-	mv ${BASEDIR}/StillCamera/${LOWERINGID}/${file} ${BASEDIR}/StillCamera/${LOWERINGID}/${newname}
-done

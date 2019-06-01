@@ -7,7 +7,7 @@ import stat
 sys.path.append('.')
 
 from sealog import Sealog
-from constants import baseDir, cruiseDataRsyncScriptName, cruiseDataBackupRsyncScriptName, scriptDir, templatesDir
+from constants import baseDir, rawDir, cruiseDataRsyncScriptName, cruiseDataBackupRsyncScriptName, scriptDir, templatesDir
 from utils import build_confirmation_menu
 
 Sealog = Sealog()
@@ -57,10 +57,14 @@ try:
             f.write("# Pulls daily data from dlog via rsync for all days of the cruise\n")
             f.write("# ---------------------------------------------------------------\n")
             f.write("\n")
+            f.write("# Directory where the script is being run from\n")
+            f.write("_D=\"$(pwd)\"\n\n")
             f.write("# From constants.py\n")
             f.write("SCRIPTDIR=" + scriptDir + "\n\n")
-            f.write("# From Sealog and constants.py\n")
-            f.write("CRUISEDIR=" + cruiseDir + "\n\n")
+            f.write("# From constants.py\n")
+            f.write("BASEDIR=" + baseDir + "\n\n")
+            f.write("# From constants.py\n")
+            f.write("RAWDIR=" + rawDir + "\n\n")
             f.write("# From Sealog\n")
             f.write("CRUISEID=" + cruise['cruise_id'] + "\n\n")
             f.write("# From Sealog cruise record\n")
@@ -68,6 +72,9 @@ try:
             f.write("# Start of template rsync_cruise_by_day.template\n\n")
             for line in t:
                 f.write(line)
+            f.write("\n\n# Return the directory where the script was called from\n")
+            f.write("cd ${_D}\n")
+
 
     st = os.stat(scriptPath)
     os.chmod(scriptPath, st.st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
@@ -95,11 +102,17 @@ try:
             f.write("# Rsync's cruise data to the specified destinations              \n")
             f.write("# ---------------------------------------------------------------\n")
             f.write("\n")
-            f.write("# From Sealog and constants.py\n")
-            f.write("CRUISEDIR=" + cruiseDir + "\n\n")
+            f.write("# Directory where the script is being run from\n")
+            f.write("_D=\"$(pwd)\"\n\n")
+            f.write("# From constants.py\n")
+            f.write("BASEDIR=" + baseDir + "\n\n")
+            f.write("# From Sealog\n")
+            f.write("CRUISEID=" + cruise['cruise_id'] + "\n\n")
             f.write("# Start of template rsync_cruise_data_to_backups.template\n\n")
             for line in t:
                 f.write(line)
+            f.write("\n\n# Return the directory where the script was called from\n")
+            f.write("cd ${_D}\n")
 
     st = os.stat(scriptPath)
     os.chmod(scriptPath, st.st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)

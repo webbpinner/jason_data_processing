@@ -1,0 +1,27 @@
+#####################################################################
+# This template builds a script to renames the SulisCam image files 
+# for the specified cruise data directory
+#
+# Created 2019/06/01 JWP
+#
+#####################################################################
+
+CRUISEDIR=${BASEDIR}/${CRUISEID}
+
+if [ ! -d ${CRUISEDIR}/StillCamera/${LOWERINGID} ]; then
+	echo "ERROR: the directory ${CRUISEDIR}/StillCamera/${LOWERINGID} does not exist"
+	exit 1
+fi
+
+cd ${CRUISEDIR}/StillCamera/${LOWERINGID}
+
+files=`ls DSC*`
+
+for file in ${files[@]}; do
+	nd=`${SCRIPTDIR}/exiftool -CreateDate $i | cut -c35-53 | tr -d ": "`
+	newname=sulis_{$nd}.jpg
+	echo "Renaming $file to $newname"
+	mv ${file} ${newname}
+done
+
+cd ${_D}
