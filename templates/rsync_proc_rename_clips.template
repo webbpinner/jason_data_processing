@@ -12,29 +12,47 @@
 #
 #######################################################################
 
+# Vehicle directory within the cruise data directory
 VEHICLEBASEDIR=${BASEDIR}/${CRUISEID}/Vehicle
 
+# Lowering directory within the vehicle/ProcData/<cruise_id> directory
 LOWERINGDIR=${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${LOWERINGID}
 
+# Target directory names for the clips
 KIPRO_4K_DIR="Highlights"
 KIPRO_1080_DIR="KiPro1080"
+
+# File extension of video clips
 VIDEO_FILE_TYPE="*.mov"
 
+# Flag used throughout this script to determine if the script is processing
+# 2K (KiPro1080) or 4K (Highlights) clips, 0=4K, 1=2K
 CLIPS_2K=0
+
+# Flag used throughout this script to determine if the script is processing
+# 2K (KiPro1080) or 4K (4K Highlights) clips
 CLIPS_TYPE="4K Highlights"
+
+# Time that script is being run
 DATE_PREFIX=`date -u +"%Y-%m-%dT%H-%M-%SZ"`
 
+# name of subdirectory for storing intermediate files
 INTERMEDIATE_DIR_NAME="intermediate_files"
+
+# file suffixes for the intermediate files
 OUTPUT_BATCH_LIST_TXT_SUFFIX="_batch_list.txt"
 OUTPUT_BATCH_LIST_CSV_SUFFIX="_batch_list.csv"
 FILE_RENAME_SCRIPT_SUFFIX="_file_rename.sh"
 
+# full filenames for intermediate files
 OUTPUT_BATCH_LIST_TXT="${DATE_PREFIX}${OUTPUT_BATCH_LIST_TXT_SUFFIX}"
 OUTPUT_BATCH_LIST_CSV="${DATE_PREFIX}${OUTPUT_BATCH_LIST_CSV_SUFFIX}"
 FILE_RENAME_SCRIPT="${DATE_PREFIX}${FILE_RENAME_SCRIPT_SUFFIX}"
 RSYNC_XFER_LOG="${DATE_PREFIX}_rsync_xfer.log"
 TC_METADATA="tcmd.txt"
 
+
+# Handle command-line arguments
 usage(){
 cat <<EOF
 Usage: $0 [-2?] [-s <source_dir>]
@@ -70,19 +88,24 @@ done
 
 shift $((OPTIND-1))
 
+# Verify the lowering directory exists before proceeding
 if [ ! -d ${LOWERINGDIR} ]; then
   echo "ERROR: the directory ${LOWERINGDIR} does not exist"
   exit 1
 fi
 
+# Set destination directory for clips
 if [ ${CLIPS_2K} == 1 ]; then
   DEST_DIR=${LOWERINGDIR}/${KIPRO_1080_DIR}
 else
   DEST_DIR=${LOWERINGDIR}/${KIPRO_4K_DIR}
 fi
 
+# Set location of intermediate file directory
 INTERMEDIATE_FILES_DIR=${DEST_DIR}/${INTERMEDIATE_DIR_NAME}
 
+# Print script configuration based on variables and
+# command-line arguments
 echo "-----------------------------------------------------"
 if [ $SOURCE_DIR ]; then
   echo "Source Dir:" ${SOURCE_DIR}
@@ -93,9 +116,12 @@ echo "Intermediate Files Dir:" ${INTERMEDIATE_FILES_DIR}
 echo "Batch File (csv):" ${INTERMEDIATE_FILES_DIR}/${OUTPUT_BATCH_LIST_CSV}
 echo "Batch File (txt):" ${INTERMEDIATE_FILES_DIR}/${OUTPUT_BATCH_LIST_TXT}
 echo "-----------------------------------------------------"
+
+# Get confirmation before proceeding
 read -p "Continue? (Y/N): " confirm && [[ $confirm == [Yy] || $confirm == [Yy][Ee][Ss] ]] || exit 1
 
-
+# If the destination directory does not exists, get confirmation before creating it
+# If the destination directory can not be created, exit.
 if [ ! -d ${DEST_DIR} ]; then
   read -p "Destination directory not found. Create it? (Y/N): " confirm && [[ $confirm == [Yy] || $confirm == [Yy][Ee][Ss] ]] || exit 0
   mkdir -p ${DEST_DIR}
@@ -105,23 +131,25 @@ if [ ! -d ${DEST_DIR} ]; then
   fi
 fi
 
+# If a source directory was specified in the command line arguments then 
+# use rsync to transfer those files to the destination directory
 if [ ${SOURCE_DIR} ]; then
   echo "Copying files..."
   rsync -aiv --log-file=${INTERMEDIATE_FILES_DIR}/${RSYNC_XFER_LOG} --include="${VIDEO_FILE_TYPE}" --exclude="*" ${SOURCE_DIR}/ $DEST_DIR/ 
   echo "Done"
 fi
 
+# If no files are found in the destination directory then exit
 find -f ${DEST_DIR}/*.mov &> /dev/null || echo "No files to process"; echo "Quitting..."; exit 0
 
 echo "Creating .txt/.csv batch_list files..."
 printf '#Clip\tStart\tStart\tStart\tDuration\tDuration\tEnd\tEnd\tEnd\tEncoder\n' > ${INTERMEDIATE_FILES_DIR}/${OUTPUT_BATCH_LIST_TXT}
 printf '#(KiPro)\tDT\tEpoch\tString\tDec\tInt\tDT\tEpoch\tString\tType\n' >> ${INTERMEDIATE_FILES_DIR}/${OUTPUT_BATCH_LIST_TXT}
 
-printf '#Clip,Start,Start,Start,Duration,Duration,End,End,End,Encoder\n' > ${INTERMEDIATE_FILES_DIR}/$OUTPUT_BATCH_LIST_CSV
-printf '#(KiPro),DT,Epoch,String,Dec,Int,DT,Epoch,String,Type\n' >> ${INTERMEDIATE_FILES_DIR}/$OUTPUT_BATCH_LIST_CSV
+printf '#Clip,Start,Start,Start,Duration,Duration,End,End,End,Encoder\n' > ${INTERMEDIATE_FILES_DIR}/${OUTPUT_BATCH_LIST_CSV}
+printf '#(KiPro),DT,Epoch,String,Dec,Int,DT,Epoch,String,Type\n' >> ${INTERMEDIATE_FILES_DIR}/${OUTPUT_BATCH_LIST_CSV}
 
 printf '#!/bin/bash\n' > ${INTERMEDIATE_FILES_DIR}/${FILE_RENAME_SCRIPT}
-
 
 FILE_COUNT=0
 for inclip in ${DEST_DIR}/*.mov; do
@@ -287,21 +315,36 @@ for inclip in ${DEST_DIR}/*.mov; do
   FILE_COUNT=$((${FILE_COUNT}+1))
 done
 
-echo "Processed ${FILE_COUNT} file(s)."
-
-chmod +x ${INTERMEDIATE_FILES_DIR}/${FILE_RENAME_SCRIPT}
-
 # Clear away a file from previous processing, if it exists.
 if [ -e ${INTERMEDIATE_FILES_DIR}/${TC_METADATA} ]; then
   rm ${INTERMEDIATE_FILES_DIR}/${TC_METADATA}
 fi
 
+echo "Processed ${FILE_COUNT} file(s)."
+
+# If no files were processed, clean up intermediate files and exit"
+if [ FILE_COUNT == 0 ]; then
+  echo "No files were processed, cleaning up intermediate files"
+  rm ${INTERMEDIATE_FILES_DIR}/${FILE_RENAME_SCRIPT}
+  rm ${INTERMEDIATE_FILES_DIR}/${OUTPUT_BATCH_LIST_CSV}
+  rm ${INTERMEDIATE_FILES_DIR}/${OUTPUT_BATCH_LIST_TXT}
+
+  echo "Done"
+  exit 0
+fi
+
+# Chmod rename script so that it can be executed
+chmod +x ${INTERMEDIATE_FILES_DIR}/${FILE_RENAME_SCRIPT}
+
+# Setup symlinks so that the output from the most recent execution of this scipt can be quickly accessed 
 ln -sf ${INTERMEDIATE_FILES_DIR}/${OUTPUT_BATCH_LIST_TXT} ${INTERMEDIATE_FILES_DIR}/latest${OUTPUT_BATCH_LIST_TXT_SUFFIX}
 ln -sf ${INTERMEDIATE_FILES_DIR}/${OUTPUT_BATCH_LIST_CSV} ${INTERMEDIATE_FILES_DIR}/latest${OUTPUT_BATCH_LIST_CSV_SUFFIX}
 ln -sf ${INTERMEDIATE_FILES_DIR}/${FILE_RENAME_SCRIPT} ${INTERMEDIATE_FILES_DIR}/latest${FILE_RENAME_SCRIPT_SUFFIX}
 
-pico ${INTERMEDIATE_FILES_DIR}/${FILE_RENAME_SCRIPT}
+# Ask to open the renaming script for review/edit
+read -p "Open rename script for review/edit? (Y/N): " confirm && [[ $confirm == [Nn] || $confirm == [Nn][Oo] ]] || pico ${INTERMEDIATE_FILES_DIR}/${FILE_RENAME_SCRIPT}
 
+# Ask to run the renaming script
 read -p "Proceed with rename? (Y/N): " confirm && [[ $confirm == [Yy] || $confirm == [Yy][Ee][Ss] ]] || exit 1
 
 # Save the shell's current pwd

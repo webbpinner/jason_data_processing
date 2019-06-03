@@ -6,22 +6,34 @@
 #
 #####################################################################
 
+# Cruise directory
 CRUISEDIR=${BASEDIR}/${CRUISEID}
 
+# Verify the lowering directory for the still camera images exists
+# before proceeding
 if [ ! -d ${CRUISEDIR}/StillCamera/${LOWERINGID} ]; then
 	echo "ERROR: the directory ${CRUISEDIR}/StillCamera/${LOWERINGID} does not exist"
 	exit 1
 fi
 
+# Change the working directory to the directory containing the still
+# camera images for the specified lowering
 cd ${CRUISEDIR}/StillCamera/${LOWERINGID}
 
-files=`ls DSC*`
+# Loop through the DSC* files in the ${CRUISEDIR}/StillCamera/${LOWERINGID}
+# directory
+for file in DSC*; do
 
-for file in ${files[@]}; do
+	# pull the creation date from the image exif metadata
 	nd=`${SCRIPTDIR}/exiftool -CreateDate $i | cut -c35-53 | tr -d ": "`
+
+	# Build a new filename for the image
 	newname=sulis_{$nd}.jpg
+
+	# Rename the image
 	echo "Renaming $file to $newname"
 	mv ${file} ${newname}
 done
 
+# Return the working directory to it's previous value
 cd ${_D}

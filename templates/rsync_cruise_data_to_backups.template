@@ -6,8 +6,10 @@
 #
 #####################################################################
 
+# Cruise directory
 CRUISEDIR=${BASEDIR}/${CRUISEID}
 
+# Verify the cruise directory exists before proceeding
 if [ ! -d ${CRUISEDIR} ]; then
   echo "ERROR: the directory ${CRUISEDIR} does not exist"
   exit 1

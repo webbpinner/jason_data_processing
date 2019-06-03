@@ -7,47 +7,59 @@
 #
 #######################################################################
 
+# Vehicle directory within the cruise data directory
 VEHICLEBASEDIR=${BASEDIR}/${CRUISEID}/Vehicle
 
-NAVEST_DIR=${VEHICLEBASEDIR}/${RAWDIR}/Navest
+# Navest directory within the raw data data directory
+NAVESTDIR=${VEHICLEBASEDIR}/${RAWDIR}/Navest
 
+# Verify the raw data directory exists before proceeding
 if [ ! -d ${VEHICLEBASEDIR}/${RAWDIR} ]; then
   echo "ERROR: the directory ${VEHICLEBASEDIR}/${RAWDIR} does not exist"
   exit 1
 fi
 
+# Verify the Navest subdirectory within the raw data directory exists
+# before proceeding
+if [ ! -d ${NAVESTDIR} ]; then
+  echo "ERROR: the directory ${NAVESTDIR} does not exist"
+  exit 1
+fi
+
+# Loop through all the specified dates for the cruise
 for DATE in ${DATES[@]}; do
 
+  # Parse the ${DATE} variable to get the year, month and day
   year=`echo ${DATE} | awk '{y=substr($1,1,4); print y}'`
   month=`echo ${DATE} | awk '{m=substr($1,5,2); print m}'`
   day=`echo ${DATE} | awk '{d=substr($1,7,2); print d}'`
 
   echo "Processing ${year}-${month}-${day}"
 
+  # Set the destination directory
   DLOG1DESTDIR=${VEHICLEBASEDIR}/${RAWDIR}/${DATE}
 
+  # Create teh destination directory if it does not exist
   if [ ! -d ${DLOG1DESTDIR} ]; then
-    echo "${DLOG1DESTDIR} doesn't exist- mkdir'ing"
-    mkdir -p ${DLOG1DESTDIR}
+    echo "Creating ${DLOG1DESTDIR}"
+    mkdir ${DLOG1DESTDIR}
   fi
 
-  echo "Getting files from dlog1 using rsync"
-  echo "Placing them in ${DLOG1DESTDIR}"
+  echo "Retrieving data files from dlog1 using rsync"
+  echo "Placing data files in the ${DLOG1DESTDIR} directory"
   rsync -avi --Progress data:dsldata1@198.17.154.201:/data/${DATE}* ${DLOG1DESTDIR}
 
   echo "Getting .DAT files from Navest using rsync"
-  rsync -avi --Progress jason@198.17.154.225:/data/nav/${year}${month}${day}_* ${NAVEST_DIR}
+  echo "Placing data files in the ${NAVESTDIR} directory"
+  rsync -avi --Progress jason@198.17.154.225:/data/nav/${year}${month}${day}_* ${NAVESTDIR}
   echo ""
 
 done
 
-if [ ! -d ${NAVEST_DIR} ]; then
-  echo "ERROR: the directory ${NAVEST_DIR} does not exist"
-  exit 1
-fi
+echo "Getting target files from Navest using rsync"
+echo "Placing data files in the ${NAVESTDIR}/targets directory"
+rsync -avi --Progress jason@198.17.154.225:/home/jason/cruises/${CRUISEID}/targets/ ${NAVESTDIR}/targets
 
-echo "Getting the target files for cruise ${CRUISEID}"
-rsync -avi --Progress jason@198.17.154.225:/home/jason/cruises/${CRUISEID}/targets/ ${NAVEST_DIR}/targets
-
-echo "Getting the map files for cruise ${CRUISEID}"
-rsync -avi --Progress jason@198.17.154.225:/home/jason/cruises/${CRUISEID}/maps/ ${NAVEST_DIR}/maps
+echo "Getting map files from Navest using rsync"
+echo "Placing data files in the ${NAVESTDIR}/maps directory"
+rsync -avi --Progress jason@198.17.154.225:/home/jason/cruises/${CRUISEID}/maps/ ${NAVESTDIR}/maps

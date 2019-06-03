@@ -9,59 +9,67 @@
 #
 #######################################################################
 
+# Vehicle directory within the cruise data directory
 VEHICLEBASEDIR=${BASEDIR}/${CRUISEID}/Vehicle
 
+# Lowering directory within the vehicle/ProcData/<cruise_id> directory
 LOWERINGDIR=${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${LOWERINGID}
 
-# Reformat the timestrings
+# List of data categories to be used for directories names 
+DATA_DIRS=("veh" "csv" "ctd" "ct2" "hfp" "svp" "ctm" "lss" "eh1" "mag" "oos")
+
+# Verify the lowering directory exists before proceeding
+if [ ! -d ${LOWERINGDIR} ]; then
+  echo "ERROR: the directory ${LOWERINGDIR} does not exist"
+  exit 1
+fi
+
+# Reformat the timestrings to YYYY-MM-DD HH:mm format
 set intime = `echo ${DIVE_START} | awk 'BEGIN{FS=""}{printf "%s%s%s%s-%s%s-%s%s %s%s:%s%s", $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12}'`
 set ontime = `echo ${ON_BOTTOM} | awk 'BEGIN{FS=""}{printf "%s%s%s%s-%s%s-%s%s %s%s:%s%s", $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12}'`
 set offtime = `echo ${OFF_BOTTOM} | awk 'BEGIN{FS=""}{printf "%s%s%s%s-%s%s-%s%s %s%s:%s%s", $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12}'`
 set outtime = `echo ${DIVE_STOP} | awk 'BEGIN{FS=""}{printf "%s%s%s%s-%s%s-%s%s %s%s:%s%s", $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12}'`
 
-if [ ! -d ${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${LOWERINGID} ]; then
-  echo "ERROR: the directory ${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${LOWERINGID} does not exist"
-  exit 1
-fi
-
-echo '*****************************************************' > ${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${LOWERINGID}/low_stats
-echo ' Lowering name/number:   '${LOWERINGID} >> ${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${LOWERINGID}/low_stats
-echo ' Time in water:          '$intime >> ${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${LOWERINGID}/low_stats
-echo ' Time on bottom:         '$ontime >> ${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${LOWERINGID}/low_stats
-echo ' Time off bottom:        '$offtime >> ${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${LOWERINGID}/low_stats
-echo ' Time out of water:      '$outtime >> ${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${LOWERINGID}/low_stats
+# Build the low_stats file
+echo '*****************************************************' > ${LOWERINGDIR}/low_stats
+echo ' Lowering name/number:   '${LOWERINGID} >> ${LOWERINGDIR}/low_stats
+echo ' Time in water:          '$intime >> ${LOWERINGDIR}/low_stats
+echo ' Time on bottom:         '$ontime >> ${LOWERINGDIR}/low_stats
+echo ' Time off bottom:        '$offtime >> ${LOWERINGDIR}/low_stats
+echo ' Time out of water:      '$outtime >> ${LOWERINGDIR}/low_stats
 echo ' '
-echo '*****************************************************' >> ${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${LOWERINGID}/low_stats
+echo '*****************************************************' >> ${LOWERINGDIR}/low_stats
+
+# Output low_stats file
 echo '*****************************************************'
 echo ' Running make_lowering for lowering '${LOWERINGID}
 echo ' '
 echo ' root directory is:      '${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}
 echo ' '
-cat ${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${LOWERINGID}/low_stats
-echo ' '
-echo ' Control C to stop if these values are wrong and you need to reset things.'
-echo ' '
-echo ' Now processing'
-echo ' '
-echo '*****************************************************'
-echo ' '
+cat ${LOWERINGDIR}/low_stats
 
-DATA_DIRS=("ship" "nav" "veh" "csv" "ctd" "ct2" "hfp" "svp" "ctm" "lss" "eh1" "mag" "oos")
+# Ask for confirmation to proceed
+read -p "Continue? (Y/N): " confirm && [[ $confirm == [Yy] || $confirm == [Yy][Ee][Ss] ]] || exit 0
 
+# Loop through data categories
 for DATA_DIR in ${DATA_DIRS[@]}; do
 
-  if [ -d ./${DATA_DIR} ]; then
-    echo "Processing ${DATA_DIR} files for lowering: ${LOWERINGID}"
+  echo "Processing ${DATA_DIR} files for lowering: ${LOWERINGID}"
 
-    if [ ! -d ${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${LOWERINGID}/${DATA_DIR} ]; then
-      mkdir ${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${LOWERINGID}/${DATA_DIR}
+  # If the source directory exists, then proceed with copy, else continue
+  if [ -d ${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${DATA_DIR} ]; then
+
+    # Create the target directory for the data category if it does not exist
+    if [ ! -d ${LOWERINGDIR}/${DATA_DIR} ]; then
+      mkdir ${LOWERINGDIR}/${DATA_DIR}
     fi
   
+    # Copy the hourly files to the target directory if they exists
     for PREFIX in ${FILE_PREFIXES[@]}; do
       if [ ! -f ${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${DATA_DIR}/${PREFIX}.${DATA_DIR} ]; then
         echo "WARNING: Could not find file: ${PREFIX}.${DATA_DIR}"
       else
-        cp -f  ${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${DATA_DIR}/${PREFIX}.${DATA_DIR} ${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${LOWERINGID}/$DATA_DIR/
+        cp -f  ${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${DATA_DIR}/${PREFIX}.${DATA_DIR} ${LOWERINGDIR}/$DATA_DIR/
       fi
     done
   else
@@ -70,8 +78,8 @@ for DATA_DIR in ${DATA_DIRS[@]}; do
 done
 
 # Process Navest files
-if [ ! -d ${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${LOWERINGID}/Navest ]; then
-  mkdir ${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${LOWERINGID}/Navest
+if [ ! -d ${LOWERINGDIR}/Navest ]; then
+  mkdir ${LOWERINGDIR}/Navest
 fi
 
 NAVEST_SUFFIXES=(".DAT" ".png" "_INI.M")
@@ -79,10 +87,8 @@ NAVEST_SUFFIXES=(".DAT" ".png" "_INI.M")
 for SUFFIX in ${NAVEST_SUFFIXES[@]}; do
   echo "Processing ${SUFFIX} Navest files for lowering: ${LOWERINGID}"
   for PREFIX in ${FILE_PREFIXES[@]}; do
-    cp -f  ${VEHICLEBASEDIR}/${RAWDIR}/Navest/${PREFIX}*{SUFFIX} ${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${LOWERINGID}/Navest/
+    cp -f  ${VEHICLEBASEDIR}/${RAWDIR}/Navest/${PREFIX}*{SUFFIX} ${LOWERINGDIR}/Navest/
   done
 done
 
 cd ${_D}
-
-echo "Done!"

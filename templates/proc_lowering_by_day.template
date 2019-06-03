@@ -1,6 +1,6 @@
 ####################################################################
 # This template builds a script to supercede the previous
-$ "data_parse" and "data_parse_all" scripts.
+# "data_parse" and "data_parse_all" scripts.
 # 
 # Creates daily by-type files and copies the appropriate subset of
 # files to the cooresponding subdirectory for the specified lowering.
@@ -9,31 +9,58 @@ $ "data_parse" and "data_parse_all" scripts.
 #
 #######################################################################
 
+# Vehicle directory within the cruise data directory
 VEHICLEBASEDIR=${BASEDIR}/${CRUISEID}/Vehicle
 
-if [ ! -d ${VEHICLEBASEDIR} ]; then
-    echo "ERROR: the directory ${VEHICLEBASEDIR} does not exist"
+# Verify the raw data directory exists before proceeding
+if [ ! -d ${VEHICLEBASEDIR}/${RAWDIR} ]; then
+    echo "ERROR: the directory ${VEHICLEBASEDIR}/${RAWDIR} does not exist"
     exit 1
 fi
 
-parse_data_type() {
-  source=$1
-  type=$2
-  subDir=$3
-  date=$4
+# Function to parse lines of data from a source data file and store the parsed
+# data in the appropriate file and location.
+#   Arguments:
+#     - 1. file extension of source files. i.e. "CSV", "DEP", "VEH"
+#     - 2. file extension of the output files. i.e. "CSV", "DEP", "VEH"
+#     - 3. target subdirectory. i.e. "csv", "ctd", "veh"
+#     - 4. the date directory to process '20180921'
+# -----------------------------------------------------------------------------
+parse_data_by_type() {
+  source=${1}
+  type=${2}
+  subDir=${3}
+  date=${4}
 
   echo "Parsing ${source} files for type ${type}"
   
+  if [ ! -d ${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${LOWERINGID}/${subDir} ]; then
+      echo "Creating directory ${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${LOWERINGID}/${subDir}"
+      mkdir ${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${LOWERINGID}/${subDir}
+  fi
+
+  # Change working directory to directory containing the source files 
   cd ${VEHICLEBASEDIR}/${RAWDIR}/${date}
 
+  # Loop through files matching the ${date}*.${source} naming convention
   for file in ${date}*.${source}; do
     echo "Processing = ${file}"
+
+    # Retrieve the filename without the file extension
     file_base="${file%.*}"
+
+    # If the output file already exists then do not overwrite it
     if [ -f ${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${LOWERINGID}/${subDir}/${file_base}.${type} ]; then
       echo "Warning: file ${file_base}.${type} already exists.  Skipping."
       continue
+
     else
+      # Use grep to retrieve the lines containing ${type} from ${file}.
+      # Save the output file: ${file_base}.${type} to the specified subdirectory: ${subDir}
       grep ${type} ${file} | grep -v MDEP > ${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${LOWERINGID}/${subDir}/${file_base}.${type}
+
+      # If there was no output from the grep operations then the resulting file will have a length of 0.
+      # If the resulting file has a length of 0 then delete it.
       if [ ! -s ${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${LOWERINGID}/${subDir}/${file_base}.${type} ]; then
         echo "No data found for type ${type}"
         rm -f ${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${LOWERINGID}/${subDir}/${file_base}.${type}
@@ -41,13 +68,35 @@ parse_data_type() {
     fi
   end
 
+  # Return the working directory to it's previous value
   cd ${_D}
-
 }
 
+
+# Loop through all the specified dates
 for DATE in ${DATES[@]}; do
+
+  # If the source directory does not exist then continue on to the next date
+  if [ ! -d ${VEHICLEBASEDIR}/${RAWDIR}/${DATE} ]; then
+      echo "ERROR: the directory ${VEHICLEBASEDIR}/${RAWDIR}/${DATE} does not exist, skipping"
+      continue
+  fi
+
+  # Loop through all the specificed datatypes
   for DATA_TYPE in ${DATA_TYPES[@]}; do
-    # ${SCRIPTDIR}/data_parse ${VEHICLEBASEDIR} ${RAWDIR} ${PROCDIR} ${CRUISEID} ${DATA_TYPE} ${DATE}
+
+    # This case statement handles customizing the call to the parse_data_by_type
+    # function.  The format of each case statement is:
+
+      # source=VEH <-- source data file extensiont, if the source is the same as the 
+      # type=ALT <-- Type of data being grep'ed from the source file
+      # subDir=veh <-- destination directory for output file
+      # date=${DATE} <-- the date to process, DO NOT CHANGE
+      # outfile=${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${LOWERINGID}/${subDir}/${file_base}.${type} <-- resulting output file, DO NOT CHANGE
+      # parse_data_by_type ${source} ${type} ${subDir} ${date} <-- The call to parse_data_by_date, DO NOT CHANGE
+      # if [ -f ${outfile} ]; then
+      #   # here's where you can do additional stuff to the outfile
+      # fi
 
     case ${DATA_TYPE} in
 
@@ -57,9 +106,9 @@ for DATE in ${DATES[@]}; do
         subDir=veh
         date=${DATE}
         outfile=${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${LOWERINGID}/${subDir}/${file_base}.${type}
-        parse_data_type ${source} ${type} ${subDir} ${date}
+        parse_data_by_type ${source} ${type} ${subDir} ${date}
         if [ -f ${outfile} ]; then
-            #here's where you can do additional stuff to the outfile
+          #here's where you can do additional stuff to the outfile
         fi
         ;;
 
@@ -69,11 +118,13 @@ for DATE in ${DATES[@]}; do
         subDir=csv
         date=${DATE}
         outfile=${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${LOWERINGID}/${subDir}/${file_base}.${type}
-        parse_data_type ${source} ${type} ${subDir} ${date}
+        parse_data_by_type ${source} ${type} ${subDir} ${date}
         if [ -f ${outfile} ]; then
-            #here's where you can do additional stuff to the outfile
-            cat ${SCRIPTDIR}/csvhead.tx ${outfile} > ${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${LOWERINGID}/${subDir}/${file_base}_tmp.${type}
-            mv ${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${LOWERINGID}/${subDir}/${file_base}_tmp.${type} ${outfile}
+          #here's where you can do additional stuff to the outfile
+
+          # Adding a header record to the csv file.
+          cat ${SCRIPTDIR}/csvhead.tx ${outfile} > ${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${LOWERINGID}/${subDir}/${file_base}_tmp.${type}
+          mv ${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${LOWERINGID}/${subDir}/${file_base}_tmp.${type} ${outfile}
         fi
         ;;
 
@@ -83,9 +134,9 @@ for DATE in ${DATES[@]}; do
         subDir=ctd
         date=${DATE}
         outfile=${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${LOWERINGID}/${subDir}/${file_base}.${type}
-        parse_data_type ${source} ${type} ${subDir} ${date}
+        parse_data_by_type ${source} ${type} ${subDir} ${date}
         if [ -f ${outfile} ]; then
-            #here's where you can do additional stuff to the outfile
+          #here's where you can do additional stuff to the outfile
         fi
         ;;
 
@@ -95,9 +146,9 @@ for DATE in ${DATES[@]}; do
         subDir=ct2
         date=${DATE}
         outfile=${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${LOWERINGID}/${subDir}/${file_base}.${type}
-        parse_data_type ${source} ${type} ${subDir} ${date}
+        parse_data_by_type ${source} ${type} ${subDir} ${date}
         if [ -f ${outfile} ]; then
-            #here's where you can do additional stuff to the outfile
+          #here's where you can do additional stuff to the outfile
         fi
         ;;
 
@@ -107,9 +158,9 @@ for DATE in ${DATES[@]}; do
         subDir=ctm
         date=${DATE}
         outfile=${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${LOWERINGID}/${subDir}/${file_base}.${type}
-        parse_data_type ${source} ${type} ${subDir} ${date}
+        parse_data_by_type ${source} ${type} ${subDir} ${date}
         if [ -f ${outfile} ]; then
-            #here's where you can do additional stuff to the outfile
+          #here's where you can do additional stuff to the outfile
         fi
         ;;
 
@@ -119,9 +170,9 @@ for DATE in ${DATES[@]}; do
         subDir=veh
         date=${DATE}
         outfile=${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${LOWERINGID}/${subDir}/${file_base}.${type}
-        parse_data_type ${source} ${type} ${subDir} ${date}
+        parse_data_by_type ${source} ${type} ${subDir} ${date}
         if [ -f ${outfile} ]; then
-            #here's where you can do additional stuff to the outfile
+          #here's where you can do additional stuff to the outfile
         fi
         ;;
 
@@ -131,11 +182,13 @@ for DATE in ${DATES[@]}; do
         subDir=eh1
         date=${DATE}
         outfile=${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${LOWERINGID}/${subDir}/${file_base}.${type}
-        parse_data_type ${source} ${type} ${subDir} ${date}
+        parse_data_by_type ${source} ${type} ${subDir} ${date}
         if [ -f ${outfile} ]; then
-            #here's where you can do additional stuff to the outfile
-            cat -v ${outfile} | sed 's/\^M/\n/g' >  ${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${LOWERINGID}/${subDir}/${file_base}_tmp.${type}
-            mv ${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${LOWERINGID}/${subDir}/${file_base}_tmp.${type} ${outfile}
+          #here's where you can do additional stuff to the outfile
+
+          # Run a sed substitution against the output file
+          cat -v ${outfile} | sed 's/\^M/\n/g' >  ${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${LOWERINGID}/${subDir}/${file_base}_tmp.${type}
+          mv ${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${LOWERINGID}/${subDir}/${file_base}_tmp.${type} ${outfile}
         fi
         ;;
 
@@ -145,9 +198,9 @@ for DATE in ${DATES[@]}; do
         subDir=hfp
         date=${DATE}
         outfile=${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${LOWERINGID}/${subDir}/${file_base}.${type}
-        parse_data_type ${source} ${type} ${subDir} ${date}
+        parse_data_by_type ${source} ${type} ${subDir} ${date}
         if [ -f ${outfile} ]; then
-            #here's where you can do additional stuff to the outfile
+          #here's where you can do additional stuff to the outfile
         fi
         ;;
 
@@ -157,9 +210,9 @@ for DATE in ${DATES[@]}; do
         subDir=hfp
         date=${DATE}
         outfile=${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${LOWERINGID}/${subDir}/${file_base}.${type}
-        parse_data_type ${source} ${type} ${subDir} ${date}
+        parse_data_by_type ${source} ${type} ${subDir} ${date}
         if [ -f ${outfile} ]; then
-            #here's where you can do additional stuff to the outfile
+          #here's where you can do additional stuff to the outfile
         fi
         ;;
 
@@ -169,9 +222,9 @@ for DATE in ${DATES[@]}; do
         subDir=hfp
         date=${DATE}
         outfile=${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${LOWERINGID}/${subDir}/${file_base}.${type}
-        parse_data_type ${source} ${type} ${subDir} ${date}
+        parse_data_by_type ${source} ${type} ${subDir} ${date}
         if [ -f ${outfile} ]; then
-            #here's where you can do additional stuff to the outfile
+          #here's where you can do additional stuff to the outfile
         fi
         ;;
 
@@ -181,9 +234,9 @@ for DATE in ${DATES[@]}; do
         subDir=mag
         date=${DATE}
         outfile=${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${LOWERINGID}/${subDir}/${file_base}.${type}
-        parse_data_type ${source} ${type} ${subDir} ${date}
+        parse_data_by_type ${source} ${type} ${subDir} ${date}
         if [ -f ${outfile} ]; then
-            #here's where you can do additional stuff to the outfile
+          #here's where you can do additional stuff to the outfile
         fi
         ;;
 
@@ -193,9 +246,9 @@ for DATE in ${DATES[@]}; do
         subDir=lss
         date=${DATE}
         outfile=${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${LOWERINGID}/${subDir}/${file_base}.${type}
-        parse_data_type ${source} ${type} ${subDir} ${date}
+        parse_data_by_type ${source} ${type} ${subDir} ${date}
         if [ -f ${outfile} ]; then
-            #here's where you can do additional stuff to the outfile
+          #here's where you can do additional stuff to the outfile
         fi
         ;;
 
@@ -205,9 +258,9 @@ for DATE in ${DATES[@]}; do
         subDir=veh
         date=${DATE}
         outfile=${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${LOWERINGID}/${subDir}/${file_base}.${type}
-        parse_data_type ${source} ${type} ${subDir} ${date}
+        parse_data_by_type ${source} ${type} ${subDir} ${date}
         if [ -f ${outfile} ]; then
-            #here's where you can do additional stuff to the outfile
+          #here's where you can do additional stuff to the outfile
         fi
         ;;
 
@@ -217,9 +270,9 @@ for DATE in ${DATES[@]}; do
         subDir=oos
         date=${DATE}
         outfile=${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${LOWERINGID}/${subDir}/${file_base}.${type}
-        parse_data_type ${source} ${type} ${subDir} ${date}
+        parse_data_by_type ${source} ${type} ${subDir} ${date}
         if [ -f ${outfile} ]; then
-            #here's where you can do additional stuff to the outfile
+          #here's where you can do additional stuff to the outfile
         fi
         ;;
 
@@ -229,9 +282,9 @@ for DATE in ${DATES[@]}; do
         subDir=svp
         date=${DATE}
         outfile=${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${LOWERINGID}/${subDir}/${file_base}.${type}
-        parse_data_type ${source} ${type} ${subDir} ${date}
+        parse_data_by_type ${source} ${type} ${subDir} ${date}
         if [ -f ${outfile} ]; then
-            #here's where you can do additional stuff to the outfile
+          #here's where you can do additional stuff to the outfile
         fi
         ;;
 
@@ -241,9 +294,9 @@ for DATE in ${DATES[@]}; do
         subDir=sys
         date=${DATE}
         outfile=${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${LOWERINGID}/${subDir}/${file_base}.${type}
-        parse_data_type ${source} ${type} ${subDir} ${date}
+        parse_data_by_type ${source} ${type} ${subDir} ${date}
         if [ -f ${outfile} ]; then
-            #here's where you can do additional stuff to the outfile
+          #here's where you can do additional stuff to the outfile
         fi
         ;;
 
