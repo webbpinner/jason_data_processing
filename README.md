@@ -1,4 +1,4 @@
-# jason_data_processing
+# JASON Data Processing Tools
 Tools used to process data from the ROV Jason
 
 ## Installation
