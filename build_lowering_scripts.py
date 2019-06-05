@@ -8,7 +8,7 @@ import math
 sys.path.append('.')
 
 from sealog import Sealog
-from constants import baseDir, rawDir, procDir, loweringBaseDir, loweringProcDataScriptName, loweringMakeLoweringScriptName, loweringClipRenameScriptName, loweringSulisRenameScriptName, scriptDir, templatesDir, dslogDataTypes
+from constants import baseDir, rawDir, procDir, loweringBaseDir, loweringProcDataScriptName, loweringMakeLoweringFilesScriptName, loweringMakeLoweringScriptName, loweringClipRenameScriptName, loweringSulisRenameScriptName, scriptDir, templatesDir, dslogDataTypes
 from utils import build_confirmation_menu
 
 Sealog = Sealog()
@@ -97,12 +97,58 @@ if not os.path.isfile(scriptPath) or build_confirmation_menu("\n" + scriptFN + "
         print("ERROR: Could not build script:", scriptPath)
         print(e)
 
+
+scriptFN = loweringMakeLoweringFilesScriptName.replace('<lowering_id>', lowering['lowering_id'])
+scriptPath = os.path.join(loweringDir, "scripts", scriptFN)
+
+if not os.path.isfile(scriptPath) or build_confirmation_menu("\n" + scriptFN + " already exists.  Rebuild it?", defaultResponse=False):
+
+    print("Building", scriptFN + "...")
+
+    try:
+
+        template = os.path.join(templatesDir, "make_lowering_files.template")
+        with open(template) as t:
+            with open(scriptPath, "w") as f:
+                f.write("#!/bin/bash\n")
+                f.write("# ---------------------------------------------------------------\n")
+                f.write("# Runs make_lowering_files script with appropriate parameters          \n")
+                f.write("# ---------------------------------------------------------------\n")
+                f.write("\n")
+                f.write("# Directory where the script is being run from\n")
+                f.write("_D=\"$(pwd)\"\n\n")
+                f.write("# From constants.py\n")
+                f.write("SCRIPTDIR=" + scriptDir + "\n\n")
+                f.write("# From constants.py\n")
+                f.write("BASEDIR=" + baseDir + "\n\n")
+                f.write("# From constants.py\n")
+                f.write("RAWDIR=" + rawDir + "\n\n")
+                f.write("# From constants.py\n")
+                f.write("PROCDIR=" + procDir + "\n\n")
+                f.write("# From Sealog Cruise Record\n")
+                f.write("CRUISEID=" + cruise['cruise_id'] + "\n\n")
+                f.write("# From Sealog Lowering Record\n")
+                f.write("LOWERINGID=" + lowering['lowering_id'] + "\n\n")
+                for line in t:
+                    f.write(line)
+                f.write("\n\n# Return the directory where the script was called from\n")
+                f.write("cd ${_D}\n")
+
+        st = os.stat(scriptPath)
+        os.chmod(scriptPath, st.st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+
+    except Exception as e:
+        print("ERROR: Could not build script:", scriptPath)
+        print(e)
+
+
+
 scriptFN = loweringMakeLoweringScriptName.replace('<lowering_id>', lowering['lowering_id'])
 scriptPath = os.path.join(loweringDir, "scripts", scriptFN)
 
 if not os.path.isfile(scriptPath) or build_confirmation_menu("\n" + scriptFN + " already exists.  Rebuild it?", defaultResponse=False):
 
-    print("\nBuilding", scriptFN + "...")
+    print("Building", scriptFN + "...")
 
     loweringStart = datetime.datetime.strptime(lowering['start_ts'], "%Y-%m-%dT%H:%M:%S.%fZ")
     loweringOnBottom = datetime.datetime.strptime(lowering['lowering_additional_meta']['milestones']['lowering_on_bottom'], "%Y-%m-%dT%H:%M:%S.%fZ") if lowering['lowering_additional_meta']['milestones'] else ""
@@ -165,7 +211,7 @@ scriptPath = os.path.join(loweringDir, "scripts", scriptFN)
 
 if not os.path.isfile(scriptPath) or build_confirmation_menu("\n" + scriptFN + " already exists.  Rebuild it?", defaultResponse=False):
 
-    print("\nBuilding", scriptFN + "...")
+    print("Building", scriptFN + "...")
 
     loweringStart = datetime.datetime.strptime(lowering['start_ts'], "%Y-%m-%dT%H:%M:%S.%fZ")
     loweringOnBottom = datetime.datetime.strptime(lowering['lowering_additional_meta']['milestones']['lowering_on_bottom'], "%Y-%m-%dT%H:%M:%S.%fZ") if lowering['lowering_additional_meta']['milestones'] else ""
@@ -212,7 +258,7 @@ scriptPath = os.path.join(loweringDir, "scripts", scriptFN)
 
 if not os.path.isfile(scriptPath) or build_confirmation_menu("\n" + scriptFN + " already exists.  Rebuild it?", defaultResponse=False):
 
-    print("\nBuilding", scriptFN + "...")
+    print("Building", scriptFN + "...")
 
     loweringStart = datetime.datetime.strptime(lowering['start_ts'], "%Y-%m-%dT%H:%M:%S.%fZ")
     loweringOnBottom = datetime.datetime.strptime(lowering['lowering_additional_meta']['milestones']['lowering_on_bottom'], "%Y-%m-%dT%H:%M:%S.%fZ") if lowering['lowering_additional_meta']['milestones'] else ""
@@ -250,4 +296,4 @@ if not os.path.isfile(scriptPath) or build_confirmation_menu("\n" + scriptFN + "
         print("ERROR: Could not build script:", scriptPath)
         print(e)
 
-print("\nDone!")
+print("Done!\n")

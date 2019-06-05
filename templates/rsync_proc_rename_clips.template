@@ -1,10 +1,11 @@
 ####################################################################
-# This template builds a scfipt to processes the Highlight and
-# KiPro1080 clips.
+# This template builds a scfipt to processes the Highlights_4k and
+# Highlights_1080 clips.
 # 
-# Needs to be run twice, once for Highlights, once for KiPro1080 
-#  - By default the script will process Highlight (4k) files.              
-#  - Add -2 to process the KiPro1080 (HD) files.
+# Needs to be run twice, once for Highlights_4k, once for
+# Highlights_1080 
+#  - By default the script will process Highlights_4k (4k) files.              
+#  - Add -2 to process the Highlights_1080 (HD) files.
 #
 # See usage message for additional details
 #
@@ -16,21 +17,21 @@
 VEHICLEBASEDIR=${BASEDIR}/${CRUISEID}/Vehicle
 
 # Lowering directory within the vehicle/ProcData/<cruise_id> directory
-LOWERINGDIR=${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${LOWERINGID}
+LOWERINGDIR=${VEHICLEBASEDIR}/${PROCDIR}/${LOWERINGID}
 
 # Target directory names for the clips
-KIPRO_4K_DIR="Highlights"
-KIPRO_1080_DIR="KiPro1080"
+KIPRO_4K_DIR="Highlights_4K"
+KIPRO_1080_DIR="Highlights_1080"
 
 # File extension of video clips
 VIDEO_FILE_TYPE="*.mov"
 
 # Flag used throughout this script to determine if the script is processing
-# 2K (KiPro1080) or 4K (Highlights) clips, 0=4K, 1=2K
-CLIPS_2K=0
+# 1080 (Hightlights_1080) or 4K (Highlights_4K) clips, 0=4K, 1=1080
+CLIPS_1080=0
 
 # Flag used throughout this script to determine if the script is processing
-# 2K (KiPro1080) or 4K (4K Highlights) clips
+# 2K (Highlights_1080) or 4K (Highlights_4K) clips
 CLIPS_TYPE="4K Highlights"
 
 # Time that script is being run
@@ -65,7 +66,7 @@ EOF
 while getopts ":2s:" opt; do
   case $opt in
    2)
-    CLIPS_2K=1
+    CLIPS_1080=1
     CLIPS_TYPE="1080 HD always-on recordings"
     ;;
    s)
@@ -95,7 +96,7 @@ if [ ! -d ${LOWERINGDIR} ]; then
 fi
 
 # Set destination directory for clips
-if [ ${CLIPS_2K} == 1 ]; then
+if [ ${CLIPS_1080} == 1 ]; then
   DEST_DIR=${LOWERINGDIR}/${KIPRO_1080_DIR}
 else
   DEST_DIR=${LOWERINGDIR}/${KIPRO_4K_DIR}

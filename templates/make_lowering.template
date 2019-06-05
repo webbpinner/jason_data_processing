@@ -13,7 +13,7 @@
 VEHICLEBASEDIR=${BASEDIR}/${CRUISEID}/Vehicle
 
 # Lowering directory within the vehicle/ProcData/<cruise_id> directory
-LOWERINGDIR=${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${LOWERINGID}
+LOWERINGDIR=${VEHICLEBASEDIR}/${PROCDIR}/${LOWERINGID}
 
 # List of data categories to be used for directories names 
 DATA_DIRS=("veh" "csv" "ctd" "ct2" "hfp" "svp" "ctm" "lss" "eh1" "mag" "oos")
@@ -44,7 +44,7 @@ echo '*****************************************************' >> ${LOWERINGDIR}/l
 echo '*****************************************************'
 echo ' Running make_lowering for lowering '${LOWERINGID}
 echo ' '
-echo ' root directory is:      '${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}
+echo ' root directory is:      '${VEHICLEBASEDIR}/${PROCDIR}
 echo ' '
 cat ${LOWERINGDIR}/low_stats
 
@@ -57,7 +57,7 @@ for DATA_DIR in ${DATA_DIRS[@]}; do
   echo "Processing ${DATA_DIR} files for lowering: ${LOWERINGID}"
 
   # If the source directory exists, then proceed with copy, else continue
-  if [ -d ${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${DATA_DIR} ]; then
+  if [ -d ${VEHICLEBASEDIR}/${PROCDIR}/${DATA_DIR} ]; then
 
     # Create the target directory for the data category if it does not exist
     if [ ! -d ${LOWERINGDIR}/${DATA_DIR} ]; then
@@ -66,10 +66,10 @@ for DATA_DIR in ${DATA_DIRS[@]}; do
   
     # Copy the hourly files to the target directory if they exists
     for PREFIX in ${FILE_PREFIXES[@]}; do
-      if [ ! -f ${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${DATA_DIR}/${PREFIX}.${DATA_DIR} ]; then
+      if [ ! -f ${VEHICLEBASEDIR}/${PROCDIR}/${DATA_DIR}/${PREFIX}.${DATA_DIR} ]; then
         echo "WARNING: Could not find file: ${PREFIX}.${DATA_DIR}"
       else
-        cp -f  ${VEHICLEBASEDIR}/${PROCDIR}/${CRUISEID}/${DATA_DIR}/${PREFIX}.${DATA_DIR} ${LOWERINGDIR}/$DATA_DIR/
+        cp -f  ${VEHICLEBASEDIR}/${PROCDIR}/${DATA_DIR}/${PREFIX}.${DATA_DIR} ${LOWERINGDIR}/$DATA_DIR/
       fi
     done
   else

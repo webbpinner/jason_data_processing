@@ -48,28 +48,44 @@ if not lowering:
     print("Quitting...")
     sys.exit(0)
 
-loweringDir = os.path.join(cruiseDir, loweringBaseDir.replace("<cruise_id>", cruise['cruise_id']), lowering['lowering_id'])
+loweringDir = os.path.join(cruiseDir, loweringBaseDir, lowering['lowering_id'])
 if not os.path.isdir(loweringDir):
     if build_confirmation_menu("Lowering Directory: " + loweringDir + ", does not exists.  Create it?", defaultResponse=True):
         try:
             print('Creating Lowering Directories:')
             print(' +', loweringDir)
             os.mkdir(loweringDir)
-            for subDir in loweringSubDirs:
-                proc_subDir = subDir.replace("<cruise_id>", cruise['cruise_id'])
-                proc_subDir = proc_subDir.replace("<lowering_id>", lowering['lowering_id'])
-                print('   -', '.../' + os.path.join(lowering['lowering_id'], proc_subDir))
-                os.makedirs(os.path.join(loweringDir, proc_subDir))
-
-            print('\nCreating other Lowering Base Directories:')
-            for otherLoweringBaseDir in otherLoweringBaseDirs:
-                print(' +', os.path.join(cruiseDir, otherLoweringBaseDir, lowering['lowering_id']))
-
 
         except:
-            print("Unable to create lowering directory.  Please verify the current user has write permissions.")
+            print("Unable to create lowering directory.  Please verify the base directory", os.path.join(cruiseDir, loweringBaseDir), "exists and verify the current user has write permissions.")
             print("Quitting...")
             sys.exit(1)
+
+        for subDir in loweringSubDirs:
+            proc_subDir = subDir.replace("<cruise_id>", cruise['cruise_id'])
+            proc_subDir = proc_subDir.replace("<lowering_id>", lowering['lowering_id'])
+            print('   -', '.../' + os.path.join(lowering['lowering_id'], proc_subDir))
+
+            try:
+                os.makedirs(os.path.join(loweringDir, proc_subDir))
+            except:
+                print("Unable to create lowering subdirectory.  Please verify the lowering directory", loweringDir, "exists and verify the current user has write permissions.")
+                print("Quitting...")
+                sys.exit(1)
+
+
+        print('\nCreating other Lowering Base Directories:')
+        for otherLoweringBaseDir in otherLoweringBaseDirs:
+            print(' +', os.path.join(cruiseDir, otherLoweringBaseDir, lowering['lowering_id']))
+
+            try:
+                os.makedirs(os.path.join(cruiseDir, otherLoweringBaseDir, lowering['lowering_id']))
+
+            except:
+                print("Unable to create the lowering directory:", os.path.join(loweringDir, proc_subDir) + ". Please verify the base directory", os.path.join(cruiseDir, otherLoweringBaseDir), "exists and verify the current user has write permissions.")
+                print("Quitting...")
+                sys.exit(1)
+
     else:
         print("Quitting...")
         sys.exit(0)

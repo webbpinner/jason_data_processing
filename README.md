@@ -17,10 +17,11 @@ Tools used to process data from the ROV Jason
   - <cruise_id>_backup_data_rsync_script.sh --> builds a script for making copies of the cruise data
 
 **build_lowering_scripts.py** --> interactive script for building/rebuilding lowering-related scripts
-  - <lowering_id>_proc_data_script.sh --> builds a script for correctly calling the data_parse script for the specified lowering
-  - <lowering_id>_make_lowering.sh --> builds a script for correctly calling the make_lowering script for the specified lowering
-  - <lowering_id>_proc_clips.sh --> builds a script for processing the Highlight and KiPro1080 scripts for the specified lowering
-  - <lowering_id>_proc_sulis.sh --> build a script for renaming the SulisCam images for the specified lowering
+  - <lowering_id>_proc_data_script.sh --> builds hourly by-datatype dlog data files from the raw dlog data files
+  - <lowering_id>_make_lowering.sh --> copies the appropriate hourly by-datatype dlog data files for the specified lowering to the lowering subdirectory within ProcData
+  - <lowering_id>_make_lowering_files.sh --> builds by-datatype files for the specified lowering
+  - <lowering_id>_proc_clips.sh --> processes/renames the Highlights_4K and Highlights_1080 clips for the specified lowering
+  - <lowering_id>_proc_sulis.sh --> processes/renames the SulisCam images for the specified lowering
 
 ## Cruise Data Directory Structure
 
@@ -29,6 +30,8 @@ Tools used to process data from the ROV Jason
   /<cruise_id>
     /Documentation
     /H264Recordings
+      /<lowering_id>
+    /Highlights
       /<lowering_id>
     /HDGrabs
       /<lowering_id>
@@ -42,9 +45,8 @@ Tools used to process data from the ROV Jason
       /<lowering_id>
     /Vehicle
       /ProcData
-        /<cruise_id>
-          /<lowering_id>
-            /scripts
+        /<lowering_id>
+          /scripts
       /RawData
     /VirtualVan
 ```
@@ -64,9 +66,15 @@ The first step is to setup the lowering record within Sealog.  Setting up loweri
 The first step is to correct the lowering start/stops times within Sealog and define the lowering on_bottom/off_bottom times.  The Milestone/Stats page within the Lowering section of Sealog should streamline this process.  After the lowering record is corrected, run the `/<cruise_id>/scripts/build_data_directories.py` script to build the initial lowering data directory structure and the `/<cruise_id>/Vehicle/ProcData/<cruise_id>/<lowering_id>/scripts/build_lowering_scripts.py` to build the lowering data processing scripts.
 
 ### DLog Data
-Next pull the data from the vans to the processing maching by running the `/<cruise_id>/scripts/<cruise_ID>_pull_data_rsync_script.sh`.  Process the data from DLog1 with the `/<cruise_id>/Vehicle/ProcData/<cruise_id>/<lowering_id>/scripts/<lowering_id>_proc_data_script.sh`.  Next run the `/<cruise_id>/Vehicle/ProcData/<cruise_id>/<lowering_id>/scripts/<lowering_id>_make_lowering.sh` script to build the `low_stat` file and copy the relavent files to the lowering directory in ProcData
+Pull the data from the vans to the processing maching by running the `/<cruise_id>/scripts/<cruise_ID>_pull_data_rsync_script.sh`.
 
-### Highlight and KiPro1080 clips
+Process the data from DLog1 with the `/<cruise_id>/Vehicle/ProcData/<cruise_id>/<lowering_id>/scripts/<lowering_id>_proc_data_script.sh`.
+
+Run the `/<cruise_id>/Vehicle/ProcData/<cruise_id>/<lowering_id>/scripts/<lowering_id>_make_lowering.sh` script to build the `low_stat` file and copy the relavent files to the lowering directory in ProcData
+
+Run the `/<cruise_id>/Vehicle/ProcData/<cruise_id>/<lowering_id>/scripts/<lowering_id>_make_lowering_files.sh` script to build the by-datatype files for the lowering
+
+### Highlights_4K and Highlights_1080 clips
 Retrieve the drives from the Vans.  For each drive:
  - Mount the drive on the iMac
  - Run the `/<cruise_id>/Vehicle/ProcData/<cruise_id>/<lowering_id>/scripts/<lowering_id>_proc_clips` script specifying the `-s <source dir>` argument where `<source dir>` is the directory on the mounted drive where the clips exist (i.e. `/Volumes/KiProDRV_01/data`). If the drive is from the KiPro Rack, also specify the `-2` argument.

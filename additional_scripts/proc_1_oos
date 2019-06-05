@@ -1,0 +1,106 @@
+#!/bin/tcsh -f
+# process_1_oos
+# preprocesses optical oxygen sensor data for the desired vehicle and 
+# makes it ready for manual editing
+#
+# Usage: process_1_oos  <indir>  <lowering> <cruise> 
+#          where indir   -  directory for processed data--base name
+#	   where lowering    - lowering id, eg j2-002
+#	   where cruise  - cruise id, eg altv7l20 
+#	   where veh  	 - vehicle id, eg j2 or argo or dsl120 
+#
+#
+# SJM 2015/09 upon addition of Aanderaa 4330 optode as permanent equipment,
+# added code in the foreach loop to remove problem characters in the sensors
+# record.
+# Native Aanderaa records start with 3 non-ASCII characters, an annoyance.
+# When logged by in-van loggers we prepend our typical DSL prefix string with
+# timestamp. This is a 33 char prefix.
+# 'clean_oos.pl' is a util that replaces the 3 non-ASCII chars with spaces.
+# It does this brute force, by replacing chars 34-36 of each oos record.
+# ** If the prefix is changed, clean_oos.pl will no longer work properly **
+# You will have to change the call to substr in clean_oos.pl.
+# This is annoying of course, but I didn't succeed in developing a
+# regexp-based replacement method.
+#
+# WJR and SJM 2010/06/14 copying from code by jch
+#  SJM 2010/08/02 altered paths to support processing in individual accounts
+#                 expects Procdata to be at $HOME/$CRUISE/Procdata
+#                 and scripts in $HOME/bin
+#
+#
+# Check usage
+#
+if ( $#argv < 3 ) then
+ echo "Usage: $0   <indir>  <lowering> <cruise> <vehicle> "
+ echo "      where indir   - base  directory for organized data"
+ echo "	           lowering  - name of lowering, eg jJ2002"
+ echo "	           
+ echo "		   
+ exit 1
+endif
+
+set indir         = "$1" 
+set lowering      = "$2" 
+set cruise_name   = "$3" 
+
+
+set real_indir = $indir/$cruise_name/$lowering/oos/
+set real_outdir = $indir/$cruise_name/$lowering
+
+set bindir = ~/bin
+
+
+# Check a few things
+if (!( -d $real_indir && -r $real_indir)) then
+	echo "In dir Does Not Exist or is not readable: $real_indir"
+	exit 2
+endif
+if (!( -d $real_outdir && \
+       -w $real_outdir)) then
+	echo "Out directory Does Not Exist or is not writable: $real_outdir"
+	exit 2
+endif
+
+# initialize processing summary
+echo "    Cruise: $cruise_name"
+echo "    Processing OOS data  for $lowering" 
+echo "    Input Directory: $real_indir"
+echo "    Output Directory: $real_outdir"
+echo "    Written: "`/bin/date "+ %b %e %T %Z"`
+echo " "
+echo "*********************************************************"
+
+
+
+# if we get interrupted, exit gracefully
+onintr QUIT_SCRIPT
+  # now process the attitude data
+  set oosfile = $real_outdir/$lowering.OOS.raw
+
+  foreach f(`ls -1 $real_indir/*OOS*|sort`)
+     mv $f oos.tmp
+     cat oos.tmp | clean_oos.pl > $f
+     checkTimes.pl <$f  >> $oosfile
+     echo `/bin/date "+ %b %e %T %Z"` " checked for bad times in $f"
+     \rm -f shit1
+  end
+  echo "saved results in $oosfile"
+
+goto DONE
+
+
+
+QUIT_SCRIPT:
+  echo ""
+  echo "$0 was interrupted... "
+ exit 1
+
+DONE:
+  echo ""
+  echo ""
+  echo `date "+ %b %e %T %Z"` "Phase 1 oos Processing  Done for $lowering "
+  echo ""
+  echo ""
+exit 1
+

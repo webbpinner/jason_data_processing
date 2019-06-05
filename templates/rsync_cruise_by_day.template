@@ -47,7 +47,7 @@ for DATE in ${DATES[@]}; do
 
   echo "Retrieving data files from dlog1 using rsync"
   echo "Placing data files in the ${DLOG1DESTDIR} directory"
-  rsync -avi --Progress data:dsldata1@198.17.154.201:/data/${DATE}* ${DLOG1DESTDIR}
+  rsync -avi --Progress data:dsldata1@198.17.154.201:/data/${DATE}/* ${DLOG1DESTDIR}
 
   echo "Getting .DAT files from Navest using rsync"
   echo "Placing data files in the ${NAVESTDIR} directory"

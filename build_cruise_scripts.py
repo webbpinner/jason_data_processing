@@ -30,7 +30,7 @@ if not os.path.isdir(cruiseDir):
 scriptFN = cruiseDataRsyncScriptName.replace('<cruise_id>', cruise['cruise_id'])
 scriptPath = os.path.join(cruiseDir, "scripts", scriptFN)
 
-if os.path.isfile(scriptPath) and not build_confirmation_menu("Rsync script: " + scriptFN + ", already exists.  Rebuild it?", defaultResponse=False):
+if os.path.isfile(scriptPath) and not build_confirmation_menu("\nRsync script: " + scriptFN + ", already exists.  Rebuild it?", defaultResponse=False):
     print("Quitting...")
     sys.exit(0)
 
@@ -46,7 +46,7 @@ for i in range(delta.days + 1):
     dates.append((cruiseStart + datetime.timedelta(days=i)).strftime("%Y%m%d"))
 
 
-print("Building", scriptFN + "...")
+print("\nBuilding", scriptFN + "...")
 try:
 
     template = os.path.join(templatesDir, "rsync_cruise_by_day.template")
@@ -87,7 +87,7 @@ except Exception as e:
 scriptFN = cruiseDataBackupRsyncScriptName.replace('<cruise_id>', cruise['cruise_id'])
 scriptPath = os.path.join(cruiseDir, "scripts", scriptFN)
 
-if os.path.isfile(scriptPath) and not build_confirmation_menu("Rsync script: " + scriptFN + ", already exists.  Rebuild it?", defaultResponse=False):
+if os.path.isfile(scriptPath) and not build_confirmation_menu("\nRsync script: " + scriptFN + ", already exists.  Rebuild it?", defaultResponse=False):
     print("Quitting...")
     sys.exit(0)
 
@@ -121,4 +121,4 @@ except Exception as e:
     print("ERROR: Could not build script:", scriptPath)
     print(e)
 
-print("\nDone!")
+print("Done!\n")

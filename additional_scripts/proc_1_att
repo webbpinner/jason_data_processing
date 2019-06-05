@@ -1,0 +1,95 @@
+#!/bin/csh -f
+#
+# process_1_att
+# preprocesses attitude data for the desired vehicle and 
+#makes it ready for manual editing
+#
+# Usage: process_1_att  <indir>  <lowering> <cruise> <vehicle> <sensor>
+#          where indir   -  directory for processed data--base name
+#	   where lowering    - lowering id, eg j2-002
+#	   where cruise  - cruise id, eg altv7l20 
+#	   where veh  	 - vehicle id, eg j2 or argo or dsl120 
+#	   sensor --octans (OCT)  or crossbow (XBW)
+#
+#  jch 2002/09/04
+# CJS - 01/12/04 - changed bindir for data user
+# SJM - 04/07/2009 - changed bindir to /usr/local/bin
+#  SJM 2010/08/02 altered paths to support processing in individual accounts
+#                 expects Procdata to be at $HOME/$CRUISE/Procdata
+#                 and scripts in $home/bin
+
+#
+# Check usage
+#
+if ( $#argv < 4 ) then
+ echo "Usage: $0   <indir>  <lowering> <cruise> <vehicle> <sensor>"
+ echo "      where indir   - base  directory for organized data"
+ echo "	           lowering  - name of lowering, eg jJ2002"
+ echo "	           cruise   - cruise name, eg atlv7l20"
+ echo "	           vehicle  - acronym, i.e. J2"
+ echo "		   sensor is OCT or XBW or whatever acronum is in file names"
+ exit 1
+endif
+
+set indir         = "$1" 
+set lowering      = "$2" 
+set cruise_name   = "$3" 
+set vehicle_name  = "$4" 
+set sensor       = "$5"
+set real_indir = $indir/$lowering/veh/
+set real_outdir = $indir/$lowering
+
+set bindir = ~/bin
+
+
+# Check a few things
+if (!( -d $real_indir && -r $real_indir)) then
+	echo "In dir Does Not Exist or is not readable: $real_indir"
+	exit 2
+endif
+if (!( -d $real_outdir && \
+       -w $real_outdir)) then
+	echo "Out directory Does Not Exist or is not writable: $real_outdir"
+	exit 2
+endif
+
+# initialize processing summary
+echo "    Cruise: $cruise_name"
+echo "    Processing $sensor attitude  for $lowering" 
+echo "    Input Directory: $real_indir"
+echo "    Output Directory: $real_outdir"
+echo "    Written: "`/bin/date "+ %b %e %T %Z"`
+echo " "
+echo "*********************************************************"
+
+
+
+# if we get interrupted, exit gracefully
+onintr QUIT_SCRIPT
+  # now process the attitude data
+  set attfile = $real_outdir/$lowering.$sensor.raw
+   
+  foreach f(`ls -1 $real_indir/*$sensor*|sort`)
+     
+     checkTimes.pl <$f  >> $attfile
+     echo `/bin/date "+ %b %e %T %Z"` " checked for bad times in $f"
+  end
+  echo "saved results in $attfile"
+
+goto DONE
+
+
+
+QUIT_SCRIPT:
+  echo ""
+  echo "$0 was interrupted... "
+ exit 1
+
+DONE:
+  echo ""
+  echo ""
+  echo `date "+ %b %e %T %Z"` "Phase 1 ATTITUDE Processing ($sensor) Done for $lowering "
+  echo ""
+  echo ""
+exit 1
+

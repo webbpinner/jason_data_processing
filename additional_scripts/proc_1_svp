@@ -1,0 +1,88 @@
+#!/bin/tcsh -f
+#
+# Usage: process_1_svp  <indir>  <lowering> <cruise> <vehicle> 
+#          where indir   -  directory for processed data--base name
+#	   where lowering    - lowering id, eg j2-002
+#	   where cruise  - cruise id, eg altv7l20 
+#	   where veh  	 - vehicle id, eg j2 or argo or dsl120 
+#
+
+set VERSION = "2.0"
+
+#
+# Check usage
+#
+if ( $#argv < 3 ) then
+ echo "Usage: $0   <indir>  <lowering> <cruise> <vehicle> "
+ echo "      where indir   - base  directory for organized data"
+ echo "	           lowering  - name of lowering, eg jJ2002"
+ echo "	           cruise   - cruise name, eg atlv7l20"
+ echo "	           
+ echo "		   
+ exit 1
+endif
+
+set indir         = "$1" 
+set lowering      = "$2" 
+set cruise_name   = "$3" 
+
+echo $indir
+
+set real_indir = $indir/$cruise_name/$lowering/svp/
+set real_outdir = $indir/$cruise_name/$lowering
+
+set bindir = /usr/local/bin
+
+
+# Check a few things
+if (!( -d $real_indir && -r $real_indir)) then
+	echo "In dir Does Not Exist or is not readable: $real_indir"
+	exit 2
+endif
+if (!( -d $real_outdir && \
+       -w $real_outdir)) then
+	echo "Out directory Does Not Exist or is not writable: $real_outdir"
+	exit 2
+endif
+
+# initialize processing summary
+echo "    Cruise: $cruise_name"
+echo "    Processing svp data  for $lowering" 
+echo "    Input Directory: $real_indir"
+echo "    Output Directory: $real_outdir"
+echo "    Written: "`/bin/date "+ %b %e %T %Z"`
+echo " "
+echo "*********************************************************"
+
+
+
+# if we get interrupted, exit gracefully
+onintr QUIT_SCRIPT
+  # now process the svp data
+  set svpfile = $real_outdir/$lowering.SVP.raw
+
+  foreach f(`ls -1 $real_indir/*SVP*|sort`)
+     awk '{printf("%s %s %s %s %s\n",$1,$2,$3,$5,$6)}' $f > shit1 
+     $bindir/checkTimes.pl <shit1  >> $svpfile
+     echo `/bin/date "+ %b %e %T %Z"` " checked for bad times in $f"
+     \rm -f shit1
+  end
+  echo "saved results in $svpfile"
+
+goto DONE
+
+
+
+QUIT_SCRIPT:
+  echo ""
+  echo "$0 was interrupted... "
+ exit 1
+
+DONE:
+  echo ""
+  echo ""
+  echo `date "+ %b %e %T %Z"` "svp Processing  Done for $lowering "
+  echo ""
+  echo ""
+exit 1
+

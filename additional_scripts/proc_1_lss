@@ -1,0 +1,101 @@
+#!/bin/tcsh -f
+#
+# process_1_lss
+# preprocesses lss data for the desired vehicle and 
+#makes it ready for manual editing
+#
+# Usage: process_1_lss  <indir>  <lowering> <cruise> <vehicle> 
+#          where indir   -  directory for processed data--base name
+#	   where lowering    - lowering id, eg j2-002
+#	   where cruise  - cruise id, eg altv7l20 
+#	   where veh  	 - vehicle id, eg j2 or argo or dsl120 
+#
+#  jch 2002/09/04
+# CJS - 01/12/04 - changed bindir for data user
+#
+# SJM - 04/07/2009 - changed bindir to /usr/local/bin
+#JTP - 05/05/2009 changed fields printed from 1,2,3,4,5(was not print all data)
+# SJM 08/02/2010 changed paths to process in individual account space
+#                Procdata is expected to be at $HOME/$CRUISE/Procdata
+#                script expected in $HOME/bin
+# SJM 2103/03/22 Added code to rewrite datestring from form YY/MM/DD to
+#                YYYY/MM/DD so that records get past checkTimes.pl. 
+# SJM 2013/08/18 SJM Added application of 'lss_raw2ftu_seapoint.py' to
+#                    J2-xxx.LSS.raw, yielding J2-xxx.FTU.proc 
+# Check usage
+#
+if ( $#argv < 3 ) then
+ echo "Usage: $0   <indir>  <lowering> <cruise> <vehicle> "
+ echo "      where indir   - base  directory for organized data"
+ echo "	           lowering  - name of lowering, eg jJ2002"
+ echo "	           cruise   - cruise name, eg atlv7l20"
+ echo "	           
+ echo "		   
+ exit 1
+endif
+
+set indir         = "$1" 
+set lowering      = "$2" 
+set cruise_name   = "$3" 
+
+
+set real_indir = $indir/$cruise_name/$lowering/lss/
+set real_outdir = $indir/$cruise_name/$lowering
+
+set bindir = ~/bin
+
+
+# Check a few things
+if (!( -d $real_indir && -r $real_indir)) then
+	echo "In dir Does Not Exist or is not readable: $real_indir"
+	exit 2
+endif
+if (!( -d $real_outdir && \
+       -w $real_outdir)) then
+	echo "Out directory Does Not Exist or is not writable: $real_outdir"
+	exit 2
+endif
+
+# initialize processing summary
+echo "    Cruise: $cruise_name"
+echo "    Processing lss data  for $lowering" 
+echo "    Input Directory: $real_indir"
+echo "    Output Directory: $real_outdir"
+echo "    Written: "`/bin/date "+ %b %e %T %Z"`
+echo " "
+echo "*********************************************************"
+
+
+
+# if we get interrupted, exit gracefully
+onintr QUIT_SCRIPT
+  # now process the attitude data
+  set lssfile = $real_outdir/$lowering.LSS.raw
+  set ftufile = $real_outdir/$lowering.FTU.proc
+
+  foreach f(`ls -1 $real_indir/*LSS*|sort`)
+     awk '{printf("%s %s %s %s %s %s\n",$1,"20"$2,$3,$5,$6,$7)}' $f > shit1 
+     checkTimes.pl <shit1  >> $lssfile
+     echo `/bin/date "+ %b %e %T %Z"` " checked for bad times in $f"
+     \rm -f shit1
+  end
+  echo "saved results in $lssfile"
+  $bindir/lss_raw2ftu_seapoint.py $lssfile $ftufile
+
+goto DONE
+
+
+
+QUIT_SCRIPT:
+  echo ""
+  echo "$0 was interrupted... "
+ exit 1
+
+DONE:
+  echo ""
+  echo ""
+  echo `date "+ %b %e %T %Z"` "Phase 1 lss Processing  Done for $lowering "
+  echo ""
+  echo ""
+exit 1
+
