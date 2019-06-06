@@ -1,0 +1,124 @@
+# Requires sshpass
+# brew install https://raw.githubusercontent.com/kadwanev/bigboybrew/master/Library/Formula/sshpass.rb
+
+#######################################################################
+# This template builds a script to pulls any new data collected in the 
+# previous hour.  The script pulls data from dlog, navest and rec1.
+#
+# Created 2019/06/06 JWP
+#
+#######################################################################
+
+# Vehicle directory within the cruise data directory
+VEHICLEBASEDIR=${BASEDIR}/${CRUISEID}/Vehicle
+
+# Set the destination directory for the dLog data
+DLOG1DESTDIR=${VEHICLEBASEDIR}/${RAWDIR}
+
+# Set the destination directory for the Navest data
+NAVESTDIR=${VEHICLEBASEDIR}/${RAWDIR}/Navest
+
+# H264 directory within the cruise data directory
+H264RECORDINGDIR=${BASEDIR}/H264Recordings
+
+# TIFgrabs directory within the cruise data directory
+TIFGRABDIR=${BASEDIR}/TIFgrabs
+
+# Verify the dlog destination directory exists before proceeding
+if [ ! -d ${DLOG1DESTDIR} ]; then
+  echo "ERROR: the directory ${DLOG1DESTDIR} does not exist"
+  exit 1
+fi
+
+# Verify the Navest destination directory exists before proceeding
+if [ ! -d ${NAVESTDIR} ]; then
+  echo "ERROR: the directory ${NAVESTDIR} does not exist"
+  exit 1
+fi
+
+# Verify the h264recordings destination directory exists before proceeding
+if [ ! -d ${H264RECORDINGDIR} ]; then
+  echo "ERROR: the directory ${H264RECORDINGDIR} does not exist"
+  exit 1
+fi
+
+# Verify the tifgrab destination directory exists before proceeding
+if [ ! -d ${TIFGRABDIR} ]; then
+  echo "ERROR: the directory ${TIFGRABDIR} does not exist"
+  exit 1
+fi
+
+# Build list of dlog files modified in the last 60 minutes
+echo "Building list of files on dlog1 machine that have changed in the last hour"
+sshpass -p dsl!data1 ssh data@198.17.154.201 "cd /data; find . -mmin -60 -type f" | sed 's/^\.\///' > dlog_rsync_filelist.txt
+
+# Build list of .DAT files modified in the last 60 minutes
+echo "Building list of .DAT files on navest machine that have changed in the last hour"
+sshpass -p dsl!jason ssh jason@198.17.154.225 "cd /data/nav; find . -mmin -60 -name '*.DAT' -type f" | sed 's/^\.\///' > navest_rsync_filelist.txt
+
+# Build list of video files modified in the last 60 minutes
+echo "Building list of video files on rec1 machine that have changed in the last hour"
+sshpass -p dsl!installer ssh installer@198.17.154.189 "cd /home/installer/src/CamDisplayStable201710; find . -mmin -60 -type f" > h264_rsync_filelist.txt
+
+# Build list of image files modified in the last 60 minutes
+echo "Building list of image files on rec1 machine that have changed in the last hour"
+sshpass -p dsl!data1 ssh data@198.17.154.189 "cd /data; find . -mmin -60 -type f" > tif_rsync_filelist.txt
+
+if [ ! -s dlog_rsync_filelist.txt ]; then
+  cat dlog_rsync_filelist.txt
+  # Rsync files modified in the last 60 minutes
+  echo "Pulling data files to the ${DLOG1DESTDIR} directory"
+  rsync -avi -P --recursive --files-from=dlog_rsync_filelist.txt data:dsldata1@198.17.154.201:/data/ ${DLOG1DESTDIR}
+else
+  echo "No files to pull"
+fi
+
+rm dlog_rsync_filelist.txt
+
+if [ ! -s navest_rsync_filelist.txt ]; then
+  cat navest_rsync_filelist.txt
+  # Rsync files modified in the last 60 minutes
+  echo "Pulling data files to the ${NAVESTDIR} directory"
+  rsync -avi -P --recursive --files-from=navest_rsync_filelist.txt jason:dsl!jason@198.17.154.225:/data/nav/ ${NAVESTDIR}
+  echo ""
+else
+  echo "No files to pull"
+fi
+
+rm navest_rsync_filelist.txt
+
+echo "Getting target files from Navest using rsync"
+echo "Placing data files in the ${NAVESTDIR}/targets directory"
+rsync -avi --Progress jason:dsl!jason@198.17.154.225:/home/jason/cruises/${CRUISEID}/targets/ ${NAVESTDIR}/targets
+
+echo "Getting map files from Navest using rsync"
+echo "Placing data files in the ${NAVESTDIR}/maps directory"
+rsync -avi --Progress jason:dsl!jason@198.17.154.225:/home/jason/cruises/${CRUISEID}/maps/ ${NAVESTDIR}/maps
+
+
+if [ ! -s h264_rsync_filelist.txt ]; then
+  cat h264_rsync_filelist.txt
+  # Rsync files modified in the last 60 minutes
+  echo "Pulling data files to the ${H264RECORDINGDIR} directory"
+  rsync -avi -P --recursive --files-from=h264_rsync_filelist.txt installer:dsl!installer@198.17.154.189:/home/installer/src/CamDisplayStable201710/ ${H264RECORDINGDIR}
+  echo ""
+else
+  echo "No files to pull"
+fi
+
+rm h264_rsync_filelist.txt
+
+if [ ! -s tif_rsync_filelist.txt ]; then
+  cat tif_rsync_filelist.txt
+  # Rsync files modified in the last 60 minutes
+  echo "Pulling data files to the ${H264RECORDINGDIR} directory"
+  rsync -avi -P --recursive --files-from=tif_rsync_filelist.txt installer:dsl!installer@198.17.154.189:/data/ ${H264RECORDINGDIR}
+  echo ""
+else
+  echo "No files to pull"
+fi
+
+rm tif_rsync_filelist.txt
+
+# Return the directory where the script was called from
+cd ${_D}

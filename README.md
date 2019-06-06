@@ -33,7 +33,7 @@ Tools used to process data from the ROV Jason
       /<lowering_id>
     /Highlights
       /<lowering_id>
-    /HDGrabs
+    /TIFgrabs
       /<lowering_id>
     /Nav
       /<lowering_id>

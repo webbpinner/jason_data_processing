@@ -37,6 +37,9 @@ otherLoweringBaseDirs = ['H264Recordings', 'HDGrabs', 'Highlights', 'ppi_ppfx', 
 # name of template-derived script for pulling data from Navest and DLog to the cruise data directory
 cruiseDataRsyncScriptName = '<cruise_id>_pull_data_rsync_script.sh'
 
+# name of template-derived script for pulling the last hour of data from Navest and DLog to the cruise data directory
+cruiseDataHourlyRsyncScriptName = '<cruise_id>_pull_data_hourly_rsync_script.sh'
+
 # name of template-derived script for rsync-ing the cruise data directory to one or more backup locations
 cruiseDataBackupRsyncScriptName = '<cruise_id>_backup_data_rsync_script.sh'
 
