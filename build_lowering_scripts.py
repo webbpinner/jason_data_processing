@@ -39,7 +39,7 @@ if not os.path.isdir(loweringDir):
     sys.exit(1)
 
 scriptFN = loweringProcDataScriptName.replace('<lowering_id>', lowering['lowering_id'])
-scriptPath = os.path.join(loweringDir, "scripts", scriptFN)
+scriptPath = os.path.join(cruiseDir, "scripts", lowering['lowering_id'], scriptFN)
 
 if not os.path.isfile(scriptPath) or build_confirmation_menu("\n" + scriptFN + " already exists.  Rebuild it?", defaultResponse=False):
 
@@ -99,7 +99,7 @@ if not os.path.isfile(scriptPath) or build_confirmation_menu("\n" + scriptFN + "
 
 
 scriptFN = loweringMakeLoweringFilesScriptName.replace('<lowering_id>', lowering['lowering_id'])
-scriptPath = os.path.join(loweringDir, "scripts", scriptFN)
+scriptPath = os.path.join(cruiseDir, "scripts", lowering['lowering_id'], scriptFN)
 
 if not os.path.isfile(scriptPath) or build_confirmation_menu("\n" + scriptFN + " already exists.  Rebuild it?", defaultResponse=False):
 
@@ -144,7 +144,7 @@ if not os.path.isfile(scriptPath) or build_confirmation_menu("\n" + scriptFN + "
 
 
 scriptFN = loweringMakeLoweringScriptName.replace('<lowering_id>', lowering['lowering_id'])
-scriptPath = os.path.join(loweringDir, "scripts", scriptFN)
+scriptPath = os.path.join(cruiseDir, "scripts", lowering['lowering_id'], scriptFN)
 
 if not os.path.isfile(scriptPath) or build_confirmation_menu("\n" + scriptFN + " already exists.  Rebuild it?", defaultResponse=False):
 
@@ -207,7 +207,7 @@ if not os.path.isfile(scriptPath) or build_confirmation_menu("\n" + scriptFN + "
         print(e)
 
 scriptFN = loweringClipRenameScriptName.replace('<lowering_id>', lowering['lowering_id'])
-scriptPath = os.path.join(loweringDir, "scripts", scriptFN)
+scriptPath = os.path.join(cruiseDir, "scripts", lowering['lowering_id'], scriptFN)
 
 if not os.path.isfile(scriptPath) or build_confirmation_menu("\n" + scriptFN + " already exists.  Rebuild it?", defaultResponse=False):
 
@@ -254,7 +254,7 @@ if not os.path.isfile(scriptPath) or build_confirmation_menu("\n" + scriptFN + "
         print(e)
 
 scriptFN = loweringSulisRenameScriptName.replace('<lowering_id>', lowering['lowering_id'])
-scriptPath = os.path.join(loweringDir, "scripts", scriptFN)
+scriptPath = os.path.join(cruiseDir, "scripts", lowering['lowering_id'], scriptFN)
 
 if not os.path.isfile(scriptPath) or build_confirmation_menu("\n" + scriptFN + " already exists.  Rebuild it?", defaultResponse=False):
 

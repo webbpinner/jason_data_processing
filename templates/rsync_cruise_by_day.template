@@ -11,13 +11,16 @@
 VEHICLEBASEDIR=${BASEDIR}/${CRUISEID}/Vehicle
 
 # Navest directory within the raw data data directory
+DLOG1DESTDIR=${VEHICLEBASEDIR}/${RAWDIR}
+
+# Navest directory within the raw data data directory
 NAVESTDIR=${VEHICLEBASEDIR}/${RAWDIR}/Navest
 
 # H264 directory within the cruise data directory
-H264RECORDINGDIR=${BASEDIR}/H264Recordings
+H264RECORDINGDIR=${BASEDIR}/${CRUISEID}/H264Recordings
 
 # TIFgrabs directory within the cruise data directory
-TIFGRABDIR=${BASEDIR}/TIFgrabs
+TIFGRABDIR=${BASEDIR}/${CRUISEID}/TIFgrabs
 
 # Verify the dlog destination directory exists before proceeding
 if [ ! -d ${DLOG1DESTDIR} ]; then
@@ -56,28 +59,26 @@ for DATE in ${DATES[@]}; do
   echo "Processing ${year}-${month}-${day}"
 
   echo "Pulling data files from dlog1 to ${DLOG1DESTDIR} using rsync"
-  rsync -avin -P data:dsl!data1@198.17.154.201:/data/${DATE} ${DLOG1DESTDIR}
+  sshpass -p 'dsl!jason' rsync -avin -P -e ssh jason@198.17.154.201:/data/${DATE}_* ${DLOG1DESTDIR}
 
   echo "Pulling *.DAT files from Navest to ${NAVESTDIR} using rsync"
-  rsync -avin -P data:dsl!data1@198.17.154.225:/data/nav/${DATE}_*.DAT ${NAVESTDIR}
+  sshpass -p 'dsl!jason' rsync -avin -P -e ssh jason@198.17.154.225:/data/nav/${DATE}_*.DAT ${NAVESTDIR}
   echo ""
 
-  echo "Pulling files from rec1 using rsync"
-  rsync -avin -P data:dsl!data1@198.17.154.189:/data/capture_${DATE} ${TIFGRABDIR}
+  echo "Pulling all files from framegrab to ${TIFGRABDIR} using rsync"
+  sshpass -p 'dsldata1' rsync -avin -P -e ssh data@198.17.154.194:/data/capture_${DATE} ${TIFGRABDIR}
   echo ""
 
+  echo "Pulling video files from rec1 to ${H264RECORDINGDIR} using rsync"
+  sshpass -p 'dsl!inst' rsync -avin -P -e ssh --include="${DATE}*.txt" --include="${DATE}*.srt" --include="*${DATE}*.ts" --exclude="*" installer@198.17.154.198:/home/installer/src/CamDisplayStable201710/ ${H264RECORDINGDIR}
 done
 
 echo "Getting target files from Navest using rsync"
 echo "Placing data files in the ${NAVESTDIR}/targets directory"
-rsync -avin -P jason:dsl!jason@198.17.154.225:/home/jason/cruises/${CRUISEID}/targets/ ${NAVESTDIR}/targets
+sshpass -p 'dsl!jason' rsync -avin -P -e ssh jason@198.17.154.225:/home/jason/cruises/${NAVG_CRUISEID}/targets/ ${NAVESTDIR}/targets
 
 echo "Getting map files from Navest using rsync"
 echo "Placing data files in the ${NAVESTDIR}/maps directory"
-rsync -avin -P jason:dsl!jason@198.17.154.225:/home/jason/cruises/${CRUISEID}/maps/ ${NAVESTDIR}/maps
-
-echo "Getting video files from rec1 using rsync"
-echo "Placing data files in the ${H264RECORDINGDIR} directory"
-rsync -avin -P installer:dsl!installer@198.17.154.189:/home/installer/src/CamDisplayStable201710/ ${H264RECORDINGDIR}
+sshpass -p 'dsl!jason' rsync -avin -P -e ssh jason@198.17.154.225:/home/jason/cruises/${NAVG_CRUISEID}/maps/ ${NAVESTDIR}/maps
 
 echo "done!"

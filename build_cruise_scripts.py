@@ -67,6 +67,8 @@ if not os.path.isfile(scriptPath) or build_confirmation_menu("Rsync script: " + 
                 f.write("RAWDIR=" + rawDir + "\n\n")
                 f.write("# From Sealog\n")
                 f.write("CRUISEID=" + cruise['cruise_id'] + "\n\n")
+                f.write("# From Sealog\n")
+                f.write("NAVG_CRUISEID=" + cruise['cruise_id'] + "\n\n")
                 f.write("# From Sealog cruise record\n")
                 f.write("DATES=(\n  \"" + "\"\n  \"".join(dates) + "\"\n)\n\n")
                 f.write("# Start of template rsync_cruise_by_day.template\n\n")
@@ -143,6 +145,8 @@ if not os.path.isfile(scriptPath) or build_confirmation_menu("\nRsync script: " 
                 f.write("RAWDIR=" + rawDir + "\n\n")
                 f.write("# From Sealog\n")
                 f.write("CRUISEID=" + cruise['cruise_id'] + "\n\n")
+                f.write("# From Sealog\n")
+                f.write("NAVG_CRUISEID=" + cruise['cruise_id'] + "\n\n")
                 f.write("# Start of template rsync_last_hour.template\n\n")
                 for line in t:
                     f.write(line)

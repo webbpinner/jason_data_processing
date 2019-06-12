@@ -21,8 +21,12 @@ fi
 #  - '/Volumes/Backup\ HD/CRUISE_BACKUP/' --> Backup to the /CRUISE_BACKUP directory of an external HDD Named 'Backup HD'
 #  - 'user:pass@192.168.1.241:/cruise_data/' --> Backup to the /cruise_data directory of an remote Linux/Mac machine 
 
-DESTINATIONS = []
+echo "Transferring to Ahi"
+sshpass -p 'dsl!admin' rsync -avin -e ssh --exclude="scripts" /Volumes/CruiseData/at42-11 rsync://jason@198.17.154.239/SciShare/
+
+DESTINATIONS=()
 
 for DEST in ${DESTINATIONS[@]}; do
+  echo "transferring to ${DEST}"
   rsync -avi --Progress --exclude="scripts" ${CRUISEDIR} ${DEST}
 done

@@ -9,6 +9,9 @@
 #
 #######################################################################
 
+# Threshold in minutes
+THRESHOLD=60
+
 # Vehicle directory within the cruise data directory
 VEHICLEBASEDIR=${BASEDIR}/${CRUISEID}/Vehicle
 
@@ -19,10 +22,10 @@ DLOG1DESTDIR=${VEHICLEBASEDIR}/${RAWDIR}
 NAVESTDIR=${VEHICLEBASEDIR}/${RAWDIR}/Navest
 
 # H264 directory within the cruise data directory
-H264RECORDINGDIR=${BASEDIR}/H264Recordings
+H264RECORDINGDIR=${BASEDIR}/${CRUISEID}/H264Recordings
 
 # TIFgrabs directory within the cruise data directory
-TIFGRABDIR=${BASEDIR}/TIFgrabs
+TIFGRABDIR=${BASEDIR}/${CRUISEID}/TIFgrabs
 
 # Verify the dlog destination directory exists before proceeding
 if [ ! -d ${DLOG1DESTDIR} ]; then
@@ -48,38 +51,36 @@ if [ ! -d ${TIFGRABDIR} ]; then
   exit 1
 fi
 
-# Build list of dlog files modified in the last 60 minutes
-echo "Building list of files on dlog1 machine that have changed in the last hour"
-sshpass -p dsl!data1 ssh data@198.17.154.201 "cd /data; find . -mmin -60 -type f" | sed 's/^\.\///' > dlog_rsync_filelist.txt
+# Build list of dlog files modified in the last ${THRESHOLD} minutes
+echo "Building list of files on dlog1 machine that have changed in the last ${THRESHOLD} minutes"
+sshpass -p 'dsl!jason' ssh jason@198.17.154.201 "cd /data; find . -mmin -${THRESHOLD} -type f" | sed 's/^\.\///' > dlog_rsync_filelist.txt
 
-# Build list of .DAT files modified in the last 60 minutes
-echo "Building list of .DAT files on navest machine that have changed in the last hour"
-sshpass -p dsl!jason ssh jason@198.17.154.225 "cd /data/nav; find . -mmin -60 -name '*.DAT' -type f" | sed 's/^\.\///' > navest_rsync_filelist.txt
+# Build list of .DAT files modified in the last ${THRESHOLD} minutes
+echo "Building list of .DAT files on navG machine that have changed in the last ${THRESHOLD} minutes"
+sshpass -p 'dsl!jason' ssh jason@198.17.154.225 "cd /data/nav; find . -mmin -${THRESHOLD} -name '*.DAT' -type f" | sed 's/^\.\///' > navest_rsync_filelist.txt
 
-# Build list of video files modified in the last 60 minutes
-echo "Building list of video files on rec1 machine that have changed in the last hour"
-sshpass -p dsl!installer ssh installer@198.17.154.189 "cd /home/installer/src/CamDisplayStable201710; find . -mmin -60 -type f" > h264_rsync_filelist.txt
+# Build list of video files modified in the last ${THRESHOLD} minutes
+echo "Building list of video files on h264recorder machine that have changed in the last ${THRESHOLD} minutes"
+sshpass -p 'dsl!inst' ssh installer@198.17.154.198 "cd /home/installer/src/CamDisplayStable201710; find . -mmin -${THRESHOLD} -type f" > h264_rsync_filelist.txt
 
-# Build list of image files modified in the last 60 minutes
-echo "Building list of image files on rec1 machine that have changed in the last hour"
-sshpass -p dsl!data1 ssh data@198.17.154.189 "cd /data; find . -mmin -60 -type f" > tif_rsync_filelist.txt
+# Build list of image files modified in the last ${THRESHOLD} minutes
+echo "Building list of image files on framegrab machine that have changed in the last ${THRESHOLD} minutes"
+sshpass -p 'dsldata1' ssh data@198.17.154.194 "cd /data; find . -mmin -${THRESHOLD} -type f" > tif_rsync_filelist.txt
 
-if [ ! -s dlog_rsync_filelist.txt ]; then
-  cat dlog_rsync_filelist.txt
+echo "Pulling data files to the ${DLOG1DESTDIR} directory"
+if [ -s dlog_rsync_filelist.txt ]; then
   # Rsync files modified in the last 60 minutes
-  echo "Pulling data files to the ${DLOG1DESTDIR} directory"
-  rsync -avi -P --recursive --files-from=dlog_rsync_filelist.txt data:dsldata1@198.17.154.201:/data/ ${DLOG1DESTDIR}
+  sshpass -p 'dsl!jason' rsync -avin -P -e ssh --recursive --files-from=dlog_rsync_filelist.txt jason@198.17.154.201:/data/ ${DLOG1DESTDIR}
 else
   echo "No files to pull"
 fi
 
 rm dlog_rsync_filelist.txt
 
-if [ ! -s navest_rsync_filelist.txt ]; then
-  cat navest_rsync_filelist.txt
+echo "Pulling data files to the ${NAVESTDIR} directory"
+if [ -s navest_rsync_filelist.txt ]; then
   # Rsync files modified in the last 60 minutes
-  echo "Pulling data files to the ${NAVESTDIR} directory"
-  rsync -avi -P --recursive --files-from=navest_rsync_filelist.txt jason:dsl!jason@198.17.154.225:/data/nav/ ${NAVESTDIR}
+  sshpass -p 'dsl!jason' rsync -avin -P -e ssh --recursive --files-from=navest_rsync_filelist.txt jason@198.17.154.225:/data/nav/ ${NAVESTDIR}
   echo ""
 else
   echo "No files to pull"
@@ -89,18 +90,16 @@ rm navest_rsync_filelist.txt
 
 echo "Getting target files from Navest using rsync"
 echo "Placing data files in the ${NAVESTDIR}/targets directory"
-rsync -avi --Progress jason:dsl!jason@198.17.154.225:/home/jason/cruises/${CRUISEID}/targets/ ${NAVESTDIR}/targets
+sshpass -p 'dsl!jason' rsync -avin -P -e ssh jason@198.17.154.225:/home/jason/cruises/${NAVG_CRUISEID}/targets/ ${NAVESTDIR}/targets
 
 echo "Getting map files from Navest using rsync"
 echo "Placing data files in the ${NAVESTDIR}/maps directory"
-rsync -avi --Progress jason:dsl!jason@198.17.154.225:/home/jason/cruises/${CRUISEID}/maps/ ${NAVESTDIR}/maps
+sshpass -p 'dsl!jason' rsync -avin -P -e ssh jason@198.17.154.225:/home/jason/cruises/${NAVG_CRUISEID}/maps/ ${NAVESTDIR}/maps
 
-
-if [ ! -s h264_rsync_filelist.txt ]; then
-  cat h264_rsync_filelist.txt
+echo "Pulling data files to the ${H264RECORDINGDIR} directory"
+if [ -s h264_rsync_filelist.txt ]; then
   # Rsync files modified in the last 60 minutes
-  echo "Pulling data files to the ${H264RECORDINGDIR} directory"
-  rsync -avi -P --recursive --files-from=h264_rsync_filelist.txt installer:dsl!installer@198.17.154.189:/home/installer/src/CamDisplayStable201710/ ${H264RECORDINGDIR}
+  sshpass -p 'dsl!inst' rsync -avin -P -e ssh --recursive --files-from=h264_rsync_filelist.txt installer@198.17.154.198:/home/installer/src/CamDisplayStable201710/ ${H264RECORDINGDIR}
   echo ""
 else
   echo "No files to pull"
@@ -108,11 +107,10 @@ fi
 
 rm h264_rsync_filelist.txt
 
-if [ ! -s tif_rsync_filelist.txt ]; then
-  cat tif_rsync_filelist.txt
+echo "Pulling tif files to the ${TIFGRABDIR} directory"
+if [ -s tif_rsync_filelist.txt ]; then
   # Rsync files modified in the last 60 minutes
-  echo "Pulling data files to the ${H264RECORDINGDIR} directory"
-  rsync -avi -P --recursive --files-from=tif_rsync_filelist.txt installer:dsl!installer@198.17.154.189:/data/ ${H264RECORDINGDIR}
+  sshpass -p 'dsldata1' rsync -avin -P -e ssh --recursive --files-from=tif_rsync_filelist.txt data@198.17.154.194:/data/ ${TIFGRABDIR}
   echo ""
 else
   echo "No files to pull"
