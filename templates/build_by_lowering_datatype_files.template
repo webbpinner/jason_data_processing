@@ -1,0 +1,411 @@
+#######################################################################
+# This template builds a script to combine the hourly by-datatype files
+# in single by-datatype files for the specified lowering
+#
+# Created 2019/06/03 JWP
+#
+#######################################################################
+
+# Vehicle directory within the cruise data directory
+VEHICLEBASEDIR=${BASEDIR}/Vehicle
+
+# Lowering directory within the vehicle/ProcData/<cruise_id> directory
+LOWERINGDIR=${VEHICLEBASEDIR}/${PROCDIR}/${LOWERINGID}
+
+# Verify the RawData directory exists before proceeding
+if [ ! -d ${VEHICLEBASEDIR}/${RAWDIR} ]; then
+  echo "ERROR: the directory ${VEHICLEBASEDIR}/${RAWDIR} does not exist"
+  exit 1
+fi
+
+# Verify the lowering directory exists before proceeding
+if [ ! -d ${LOWERINGDIR} ]; then
+  echo "ERROR: the directory ${LOWERINGDIR} does not exist"
+  exit 1
+fi
+
+# The scripts in the additional_scripts directory sometimes depend on other
+# scripts in that directory so it's necessay to add the additional_scripts
+# directory to the PATH
+PATH=$PATH:${SCRIPTDIR}/additional_scripts
+export PATH
+
+echo '*****************************************************'
+echo ''
+echo ' Running ${LOWERINGID}_make_lowering_files.sh'
+echo ''
+echo '  + Input Directory:  ${VEHICLEBASEDIR}/${RAWDIR}'
+echo '  + Output Directory: ${LOWERINGDIR}'
+echo ''
+echo '*****************************************************'
+
+# Loop through the datatypes and build the by-datatype files for each datatype
+for DATA_TYPE in ${DATA_TYPES[@]}; do
+
+	echo "Processing ${DATA_TYPE}"
+
+    outfile = ${VEHICLEBASEDIR}/${PROCDIR}/${LOWERINGID}/${LOWERINGID}.${DATATYPE}.raw
+
+	case ${DATA_TYPE} in
+
+	  "ALT")
+		if [ ! -f ${SCRIPTDIR}/additional_scripts/proc_1_alt.sh ]; then
+			echo "Could not find processing script for ${DATA_TYPE}: ${SCRIPTDIR}/proc_1_alt.sh"
+			continue
+		fi
+
+		${SCRIPTDIR}/additional_scripts/proc_1_alt.sh ${VEHICLEBASEDIR}/${PROCDIR}/${LOWERINGID}
+		if [[ $? == 0 && -s $outfile ]]; then
+	    	${SCRIPTDIR}/additional_scripts/trim_lowering.sh ${outfile} ${DIVE_START} ${DIVE_STOP} > ${outfile}.trim
+	    	if [ ! -s ${outfile}.trim ]; then
+	    		echo "ERROR: triming ${outfile} produced no output."
+	    		echo "CMD: ${SCRIPTDIR}/additional_scripts/trim_lowering.sh ${outfile} ${DIVE_START} ${DIVE_STOP} > ${outfile}.trim"
+	    		rm ${outfile}.trim
+	    	else
+	    		mv ${outfile}.trim ${outfile}
+	    	fi
+	    else
+    		echo "ERROR: processing ${DATA_TYPE}."
+    		echo "CMD: ${SCRIPTDIR}/additional_scripts/proc_1_alt.sh ${VEHICLEBASEDIR}/${PROCDIR}/${LOWERINGID}"
+	    fi
+	    ;;
+
+	  "CSV")
+		if [ ! -f ${SCRIPTDIR}/additional_scripts/proc_1_csv.sh ]; then
+			echo "Could not find processing script for ${DATA_TYPE}: ${SCRIPTDIR}/proc_1_csv.sh"
+			continue
+		fi
+
+		${SCRIPTDIR}/additional_scripts/proc_1_csv.sh ${VEHICLEBASEDIR}/${PROCDIR}/${LOWERINGID}
+		if [[ $? == 0 && -s $outfile ]]; then
+	    	${SCRIPTDIR}/additional_scripts/trim_lowering.sh ${outfile} ${DIVE_START} ${DIVE_STOP} > ${outfile}.trim
+	    	if [ ! -s ${outfile}.trim ]; then
+	    		echo "ERROR: triming ${outfile} produced no output."
+	    		echo "CMD: ${SCRIPTDIR}/additional_scripts/trim_lowering.sh ${outfile} ${DIVE_START} ${DIVE_STOP} > ${outfile}.trim"
+	    		rm ${outfile}.trim
+	    	else
+	    		mv ${outfile}.trim ${outfile}
+	    	fi
+	    else
+    		echo "ERROR: processing ${DATA_TYPE}."
+    		echo "CMD: ${SCRIPTDIR}/additional_scripts/proc_1_csv.sh ${VEHICLEBASEDIR}/${PROCDIR}/${LOWERINGID}"
+	    fi
+	    ;;
+
+	  "CT1")
+		if [ ! -f ${SCRIPTDIR}/additional_scripts/proc_1_ctd.sh ]; then
+			echo "Could not find processing script for ${DATA_TYPE}: ${SCRIPTDIR}/proc_1_ctd.sh"
+			continue
+		fi
+
+		${SCRIPTDIR}/additional_scripts/proc_1_ctd.sh ${VEHICLEBASEDIR}/${PROCDIR}/${LOWERINGID}
+		if [[ $? == 0 && -s $outfile ]]; then
+	    	${SCRIPTDIR}/additional_scripts/trim_lowering.sh ${outfile} ${DIVE_START} ${DIVE_STOP} > ${outfile}.trim
+	    	if [ ! -s ${outfile}.trim ]; then
+	    		echo "ERROR: triming ${outfile} produced no output."
+	    		echo "CMD: ${SCRIPTDIR}/additional_scripts/trim_lowering.sh ${outfile} ${DIVE_START} ${DIVE_STOP} > ${outfile}.trim"
+	    		rm ${outfile}.trim
+	    	else
+	    		mv ${outfile}.trim ${outfile}
+	    	fi
+	    else
+    		echo "ERROR: processing ${DATA_TYPE}."
+    		echo "CMD: ${SCRIPTDIR}/additional_scripts/proc_1_ctd.sh ${VEHICLEBASEDIR}/${PROCDIR}/${LOWERINGID}"
+	    fi
+	    ;;
+
+	  "CT2")
+		if [ ! -f ${SCRIPTDIR}/additional_scripts/proc_1_ct2.sh ]; then
+			echo "Could not find processing script for ${DATA_TYPE}: ${SCRIPTDIR}/proc_1_ct2.sh"
+			continue
+		fi
+
+		${SCRIPTDIR}/additional_scripts/proc_1_ct2.sh ${VEHICLEBASEDIR}/${PROCDIR}/${LOWERINGID}
+		if [[ $? == 0 && -s $outfile ]]; then
+	    	${SCRIPTDIR}/additional_scripts/trim_lowering.sh ${outfile} ${DIVE_START} ${DIVE_STOP} > ${outfile}.trim
+	    	if [ ! -s ${outfile}.trim ]; then
+	    		echo "ERROR: triming ${outfile} produced no output."
+	    		echo "CMD: ${SCRIPTDIR}/additional_scripts/trim_lowering.sh ${outfile} ${DIVE_START} ${DIVE_STOP} > ${outfile}.trim"
+	    		rm ${outfile}.trim
+	    	else
+	    		mv ${outfile}.trim ${outfile}
+	    	fi
+	    else
+    		echo "ERROR: processing ${DATA_TYPE}."
+    		echo "CMD: ${SCRIPTDIR}/additional_scripts/proc_1_ct2.sh ${VEHICLEBASEDIR}/${PROCDIR}/${LOWERINGID}"
+	    fi
+	    ;;
+
+	  "CTM")
+		if [ ! -f ${SCRIPTDIR}/additional_scripts/proc_1_ctm.sh ]; then
+			echo "Could not find processing script for ${DATA_TYPE}: ${SCRIPTDIR}/proc_1_ctm.sh"
+			continue
+		fi
+
+		${SCRIPTDIR}/additional_scripts/proc_1_ctm.sh ${VEHICLEBASEDIR}/${PROCDIR}/${LOWERINGID}
+		if [[ $? == 0 && -s $outfile ]]; then
+	    	${SCRIPTDIR}/additional_scripts/trim_lowering.sh ${outfile} ${DIVE_START} ${DIVE_STOP} > ${outfile}.trim
+	    	if [ ! -s ${outfile}.trim ]; then
+	    		echo "ERROR: triming ${outfile} produced no output."
+	    		echo "CMD: ${SCRIPTDIR}/additional_scripts/trim_lowering.sh ${outfile} ${DIVE_START} ${DIVE_STOP} > ${outfile}.trim"
+	    		rm ${outfile}.trim
+	    	else
+	    		mv ${outfile}.trim ${outfile}
+	    	fi
+	    else
+    		echo "ERROR: processing ${DATA_TYPE}."
+    		echo "CMD: ${SCRIPTDIR}/additional_scripts/proc_1_ctm.sh ${VEHICLEBASEDIR}/${PROCDIR}/${LOWERINGID}"
+	    fi
+	    ;;
+
+	  "DEP")
+		if [ ! -f ${SCRIPTDIR}/additional_scripts/proc_1_dep.sh ]; then
+			echo "Could not find processing script for ${DATA_TYPE}: ${SCRIPTDIR}/proc_1_dep.sh"
+			continue
+		fi
+
+		${SCRIPTDIR}/additional_scripts/proc_1_dep.sh ${VEHICLEBASEDIR}/${PROCDIR}/${LOWERINGID}
+		if [[ $? == 0 && -s $outfile ]]; then
+	    	${SCRIPTDIR}/additional_scripts/trim_lowering.sh ${outfile} ${DIVE_START} ${DIVE_STOP} > ${outfile}.trim
+	    	if [ ! -s ${outfile}.trim ]; then
+	    		echo "ERROR: triming ${outfile} produced no output."
+	    		echo "CMD: ${SCRIPTDIR}/additional_scripts/trim_lowering.sh ${outfile} ${DIVE_START} ${DIVE_STOP} > ${outfile}.trim"
+	    		rm ${outfile}.trim
+	    	else
+	    		mv ${outfile}.trim ${outfile}
+	    	fi
+	    else
+    		echo "ERROR: processing ${DATA_TYPE}."
+    		echo "CMD: ${SCRIPTDIR}/additional_scripts/proc_1_dep.sh ${VEHICLEBASEDIR}/${PROCDIR}/${LOWERINGID}"
+	    fi
+	    ;;
+
+	  "EH1")
+		if [ ! -f ${SCRIPTDIR}/additional_scripts/proc_1_eh1.sh ]; then
+			echo "Could not find processing script for ${DATA_TYPE}: ${SCRIPTDIR}/proc_1_eh1.sh"
+			continue
+		fi
+
+		${SCRIPTDIR}/additional_scripts/proc_1_eh1.sh ${VEHICLEBASEDIR}/${PROCDIR}/${LOWERINGID}
+		if [[ $? == 0 && -s $outfile ]]; then
+	    	${SCRIPTDIR}/additional_scripts/trim_lowering.sh ${outfile} ${DIVE_START} ${DIVE_STOP} > ${outfile}.trim
+	    	if [ ! -s ${outfile}.trim ]; then
+	    		echo "ERROR: triming ${outfile} produced no output."
+	    		echo "CMD: ${SCRIPTDIR}/additional_scripts/trim_lowering.sh ${outfile} ${DIVE_START} ${DIVE_STOP} > ${outfile}.trim"
+	    		rm ${outfile}.trim
+	    	else
+	    		mv ${outfile}.trim ${outfile}
+	    	fi
+	    else
+    		echo "ERROR: processing ${DATA_TYPE}."
+    		echo "CMD: ${SCRIPTDIR}/additional_scripts/proc_1_eh1.sh ${VEHICLEBASEDIR}/${PROCDIR}/${LOWERINGID}"
+	    fi
+	    ;;
+
+	  "HFB")
+		if [ ! -f ${SCRIPTDIR}/additional_scripts/proc_1_hfp.sh ]; then
+			echo "Could not find processing script for ${DATA_TYPE}: ${SCRIPTDIR}/proc_1_hfp.sh"
+			continue
+		fi
+
+		${SCRIPTDIR}/additional_scripts/proc_1_hfp.sh ${VEHICLEBASEDIR}/${PROCDIR}/${LOWERINGID}
+		if [[ $? == 0 && -s $outfile ]]; then
+	    	${SCRIPTDIR}/additional_scripts/trim_lowering.sh ${outfile} ${DIVE_START} ${DIVE_STOP} > ${outfile}.trim
+	    	if [ ! -s ${outfile}.trim ]; then
+	    		echo "ERROR: triming ${outfile} produced no output."
+	    		echo "CMD: ${SCRIPTDIR}/additional_scripts/trim_lowering.sh ${outfile} ${DIVE_START} ${DIVE_STOP} > ${outfile}.trim"
+	    		rm ${outfile}.trim
+	    	else
+	    		mv ${outfile}.trim ${outfile}
+	    	fi
+	    else
+    		echo "ERROR: processing ${DATA_TYPE}."
+    		echo "CMD: ${SCRIPTDIR}/additional_scripts/proc_1_hfp.sh ${VEHICLEBASEDIR}/${PROCDIR}/${LOWERINGID}"
+	    fi
+	    ;;
+
+	  "HFP")
+		if [ ! -f ${SCRIPTDIR}/additional_scripts/proc_1_hfp.sh ]; then
+			echo "Could not find processing script for ${DATA_TYPE}: ${SCRIPTDIR}/proc_1_hfp.sh"
+			continue
+		fi
+
+		${SCRIPTDIR}/additional_scripts/proc_1_hfp.sh ${VEHICLEBASEDIR}/${PROCDIR}/${LOWERINGID}
+		if [[ $? == 0 && -s $outfile ]]; then
+	    	${SCRIPTDIR}/additional_scripts/trim_lowering.sh ${outfile} ${DIVE_START} ${DIVE_STOP} > ${outfile}.trim
+	    	if [ ! -s ${outfile}.trim ]; then
+	    		echo "ERROR: triming ${outfile} produced no output."
+	    		echo "CMD: ${SCRIPTDIR}/additional_scripts/trim_lowering.sh ${outfile} ${DIVE_START} ${DIVE_STOP} > ${outfile}.trim"
+	    		rm ${outfile}.trim
+	    	else
+	    		mv ${outfile}.trim ${outfile}
+	    	fi
+	    else
+    		echo "ERROR: processing ${DATA_TYPE}."
+    		echo "CMD: ${SCRIPTDIR}/additional_scripts/proc_1_hfp.sh ${VEHICLEBASEDIR}/${PROCDIR}/${LOWERINGID}"
+	    fi
+	    ;;
+
+	  "HFR")
+		if [ ! -f ${SCRIPTDIR}/additional_scripts/proc_1_hfp.sh ]; then
+			echo "Could not find processing script for ${DATA_TYPE}: ${SCRIPTDIR}/proc_1_hfp.sh"
+			continue
+		fi
+
+		${SCRIPTDIR}/additional_scripts/proc_1_hfp.sh ${VEHICLEBASEDIR}/${PROCDIR}/${LOWERINGID}
+		if [[ $? == 0 && -s $outfile ]]; then
+	    	${SCRIPTDIR}/additional_scripts/trim_lowering.sh ${outfile} ${DIVE_START} ${DIVE_STOP} > ${outfile}.trim
+	    	if [ ! -s ${outfile}.trim ]; then
+	    		echo "ERROR: triming ${outfile} produced no output."
+	    		echo "CMD: ${SCRIPTDIR}/additional_scripts/trim_lowering.sh ${outfile} ${DIVE_START} ${DIVE_STOP} > ${outfile}.trim"
+	    		rm ${outfile}.trim
+	    	else
+	    		mv ${outfile}.trim ${outfile}
+	    	fi
+	    else
+    		echo "ERROR: processing ${DATA_TYPE}."
+    		echo "CMD: ${SCRIPTDIR}/additional_scripts/proc_1_hfp.sh ${VEHICLEBASEDIR}/${PROCDIR}/${LOWERINGID}"
+	    fi
+	    ;;
+
+	  "HMR")
+		if [ ! -f ${SCRIPTDIR}/additional_scripts/proc_1_mag.sh ]; then
+			echo "Could not find processing script for ${DATA_TYPE}: ${SCRIPTDIR}/proc_1_mag.sh"
+			continue
+		fi
+
+		${SCRIPTDIR}/additional_scripts/proc_1_mag.sh ${VEHICLEBASEDIR}/${PROCDIR}/${LOWERINGID}
+		if [[ $? == 0 && -s $outfile ]]; then
+	    	${SCRIPTDIR}/additional_scripts/trim_lowering.sh ${outfile} ${DIVE_START} ${DIVE_STOP} > ${outfile}.trim
+	    	if [ ! -s ${outfile}.trim ]; then
+	    		echo "ERROR: triming ${outfile} produced no output."
+	    		echo "CMD: ${SCRIPTDIR}/additional_scripts/trim_lowering.sh ${outfile} ${DIVE_START} ${DIVE_STOP} > ${outfile}.trim"
+	    		rm ${outfile}.trim
+	    	else
+	    		mv ${outfile}.trim ${outfile}
+	    	fi
+	    else
+    		echo "ERROR: processing ${DATA_TYPE}."
+    		echo "CMD: ${SCRIPTDIR}/additional_scripts/proc_1_mag.sh ${VEHICLEBASEDIR}/${PROCDIR}/${LOWERINGID}"
+	    fi
+	    ;;
+
+	  "LSS")
+		if [ ! -f ${SCRIPTDIR}/additional_scripts/proc_1_lss.sh ]; then
+			echo "Could not find processing script for ${DATA_TYPE}: ${SCRIPTDIR}/proc_1_lss.sh"
+			continue
+		fi
+
+		${SCRIPTDIR}/additional_scripts/proc_1_lss.sh ${VEHICLEBASEDIR}/${PROCDIR}/${LOWERINGID}
+		if [[ $? == 0 && -s $outfile ]]; then
+	    	${SCRIPTDIR}/additional_scripts/trim_lowering.sh ${outfile} ${DIVE_START} ${DIVE_STOP} > ${outfile}.trim
+	    	if [ ! -s ${outfile}.trim ]; then
+	    		echo "ERROR: triming ${outfile} produced no output."
+	    		echo "CMD: ${SCRIPTDIR}/additional_scripts/trim_lowering.sh ${outfile} ${DIVE_START} ${DIVE_STOP} > ${outfile}.trim"
+	    		rm ${outfile}.trim
+	    	else
+	    		mv ${outfile}.trim ${outfile}
+	    	fi
+	    else
+    		echo "ERROR: processing ${DATA_TYPE}."
+    		echo "CMD: ${SCRIPTDIR}/additional_scripts/proc_1_lss.sh ${VEHICLEBASEDIR}/${PROCDIR}/${LOWERINGID}"
+	    fi
+	    ;;
+
+	  "O2")
+		if [ ! -f ${SCRIPTDIR}/additional_scripts/proc_1_o2.sh ]; then
+			echo "Could not find processing script for ${DATA_TYPE}: ${SCRIPTDIR}/proc_1_o2.sh"
+			continue
+		fi
+
+		${SCRIPTDIR}/additional_scripts/proc_1_o2.sh ${VEHICLEBASEDIR}/${PROCDIR}/${LOWERINGID}
+		if [[ $? == 0 && -s $outfile ]]; then
+	    	${SCRIPTDIR}/additional_scripts/trim_lowering.sh ${outfile} ${DIVE_START} ${DIVE_STOP} > ${outfile}.trim
+	    	if [ ! -s ${outfile}.trim ]; then
+	    		echo "ERROR: triming ${outfile} produced no output."
+	    		echo "CMD: ${SCRIPTDIR}/additional_scripts/trim_lowering.sh ${outfile} ${DIVE_START} ${DIVE_STOP} > ${outfile}.trim"
+	    		rm ${outfile}.trim
+	    	else
+	    		mv ${outfile}.trim ${outfile}
+	    	fi
+	    else
+    		echo "ERROR: processing ${DATA_TYPE}."
+    		echo "CMD: ${SCRIPTDIR}/additional_scripts/proc_1_o2.sh ${VEHICLEBASEDIR}/${PROCDIR}/${LOWERINGID}"
+	    fi
+	    ;;
+
+	  "OCT")
+		if [ ! -f ${SCRIPTDIR}/additional_scripts/proc_1_att.sh ]; then
+			echo "Could not find processing script for ${DATA_TYPE}: ${SCRIPTDIR}/proc_1_att.sh"
+			continue
+		fi
+
+		${SCRIPTDIR}/additional_scripts/proc_1_att.sh ${VEHICLEBASEDIR}/${PROCDIR}/${LOWERINGID}
+		if [[ $? == 0 && -s $outfile ]]; then
+	    	${SCRIPTDIR}/additional_scripts/trim_lowering.sh ${outfile} ${DIVE_START} ${DIVE_STOP} > ${outfile}.trim
+	    	if [ ! -s ${outfile}.trim ]; then
+	    		echo "ERROR: triming ${outfile} produced no output."
+	    		echo "CMD: ${SCRIPTDIR}/additional_scripts/trim_lowering.sh ${outfile} ${DIVE_START} ${DIVE_STOP} > ${outfile}.trim"
+	    		rm ${outfile}.trim
+	    	else
+	    		mv ${outfile}.trim ${outfile}
+	    	fi
+	    else
+    		echo "ERROR: processing ${DATA_TYPE}."
+    		echo "CMD: ${SCRIPTDIR}/additional_scripts/proc_1_att.sh ${VEHICLEBASEDIR}/${PROCDIR}/${LOWERINGID}"
+	    fi
+	    ;;
+
+	  "OOS")
+		if [ ! -f ${SCRIPTDIR}/additional_scripts/proc_1_oos.sh ]; then
+			echo "Could not find processing script for ${DATA_TYPE}: ${SCRIPTDIR}/proc_1_oos.sh"
+			continue
+		fi
+
+		${SCRIPTDIR}/additional_scripts/proc_1_oos.sh ${VEHICLEBASEDIR}/${PROCDIR}/${LOWERINGID}
+		if [[ $? == 0 && -s $outfile ]]; then
+	    	${SCRIPTDIR}/additional_scripts/trim_lowering.sh ${outfile} ${DIVE_START} ${DIVE_STOP} > ${outfile}.trim
+	    	if [ ! -s ${outfile}.trim ]; then
+	    		echo "ERROR: triming ${outfile} produced no output."
+	    		echo "CMD: ${SCRIPTDIR}/additional_scripts/trim_lowering.sh ${outfile} ${DIVE_START} ${DIVE_STOP} > ${outfile}.trim"
+	    		rm ${outfile}.trim
+	    	else
+	    		mv ${outfile}.trim ${outfile}
+	    	fi
+	    else
+    		echo "ERROR: processing ${DATA_TYPE}."
+    		echo "CMD: ${SCRIPTDIR}/additional_scripts/proc_1_oos.sh ${VEHICLEBASEDIR}/${PROCDIR}/${LOWERINGID}"
+	    fi
+	    ;;
+
+	  "SVP")
+		if [ ! -f ${SCRIPTDIR}/additional_scripts/proc_1_svp.sh ]; then
+			echo "Could not find processing script for ${DATA_TYPE}: ${SCRIPTDIR}/proc_1_svp.sh"
+			continue
+		fi
+
+		${SCRIPTDIR}/additional_scripts/proc_1_svp.sh ${VEHICLEBASEDIR}/${PROCDIR}/${LOWERINGID}
+		if [[ $? == 0 && -s $outfile ]]; then
+	    	${SCRIPTDIR}/additional_scripts/trim_lowering.sh ${outfile} ${DIVE_START} ${DIVE_STOP} > ${outfile}.trim
+	    	if [ ! -s ${outfile}.trim ]; then
+	    		echo "ERROR: triming ${outfile} produced no output."
+	    		echo "CMD: ${SCRIPTDIR}/additional_scripts/trim_lowering.sh ${outfile} ${DIVE_START} ${DIVE_STOP} > ${outfile}.trim"
+	    		rm ${outfile}.trim
+	    	else
+	    		mv ${outfile}.trim ${outfile}
+	    	fi
+	    else
+    		echo "ERROR: processing ${DATA_TYPE}."
+    		echo "CMD: ${SCRIPTDIR}/additional_scripts/proc_1_svp.sh ${VEHICLEBASEDIR}/${PROCDIR}/${LOWERINGID}"
+	    fi
+	    ;;
+
+	  "SYS")
+	    ;;
+
+	  *)
+	    echo "Unknown Datatype: ${DATA_TYPE}"
+	    ;;
+
+	esac
+done

@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import json
 import sys
 import datetime
@@ -82,9 +84,23 @@ if not os.path.isdir(loweringDir):
                 os.makedirs(os.path.join(cruiseDir, otherLoweringBaseDir, lowering['lowering_id']))
 
             except:
-                print("Unable to create the lowering directory:", os.path.join(loweringDir, proc_subDir) + ". Please verify the base directory", os.path.join(cruiseDir, otherLoweringBaseDir), "exists and verify the current user has write permissions.")
+                print("Unable to create the lowering directory:", os.path.join(cruiseDir, otherLoweringBaseDir, lowering['lowering_id']) + ". Please verify the base directory", os.path.join(cruiseDir, otherLoweringBaseDir), "exists and verify the current user has write permissions.")
                 print("Quitting...")
                 sys.exit(1)
+
+            if otherLoweringBaseDir == "H264Recordings":
+
+                for h264SubDir in ["Metadata", "Subtitles", "Videos"]:
+                    print(' +', os.path.join(cruiseDir, otherLoweringBaseDir, lowering['lowering_id'], h264SubDir))
+
+                    try:
+                        os.makedirs(os.path.join(cruiseDir, otherLoweringBaseDir, lowering['lowering_id'], h264SubDir))
+
+                    except:
+                        print("Unable to create the lowering directory:", os.path.join(cruiseDir, otherLoweringBaseDir, lowering['lowering_id'], h264SubDir) + ". Please verify the base directory", os.path.join(cruiseDir, otherLoweringBaseDir), "exists and verify the current user has write permissions.")
+                        print("Quitting...")
+                        sys.exit(1)
+
 
     else:
         print("Quitting...")

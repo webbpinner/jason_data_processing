@@ -17,10 +17,13 @@ DLOG1DESTDIR=${VEHICLEBASEDIR}/${RAWDIR}
 NAVESTDIR=${VEHICLEBASEDIR}/${RAWDIR}/Navest
 
 # H264 directory within the cruise data directory
-H264RECORDINGDIR=${BASEDIR}/${CRUISEID}/H264Recordings
+H264RECORDINGDIR=${BASEDIR}/${CRUISEID}/H264Recordings/Unsorted
 
 # TIFgrabs directory within the cruise data directory
-TIFGRABDIR=${BASEDIR}/${CRUISEID}/TIFgrabs
+TIFGRABDIR=${BASEDIR}/${CRUISEID}/TIFgrabs/Unsorted
+
+# Sealog directory within the cruise data directory
+SEALOGDIR=${BASEDIR}/${CRUISEID}/Sealog
 
 # Verify the dlog destination directory exists before proceeding
 if [ ! -d ${DLOG1DESTDIR} ]; then
@@ -38,11 +41,26 @@ fi
 if [ ! -d ${H264RECORDINGDIR} ]; then
   echo "ERROR: the directory ${H264RECORDINGDIR} does not exist"
   exit 1
+elif [ ! -d ${H264RECORDINGDIR}/Metadata ]; then
+  echo "ERROR: the directory ${H264RECORDINGDIR}/Metadata does not exist"
+  exit 1
+elif [ ! -d ${H264RECORDINGDIR}/Subtitles ]; then
+  echo "ERROR: the directory ${H264RECORDINGDIR}/Subtitles does not exist"
+  exit 1
+elif [ ! -d ${H264RECORDINGDIR}/Videos ]; then
+  echo "ERROR: the directory ${H264RECORDINGDIR}/Videos does not exist"
+  exit 1
 fi
 
 # Verify the tifgrab destination directory exists before proceeding
 if [ ! -d ${TIFGRABDIR} ]; then
   echo "ERROR: the directory ${TIFGRABDIR} does not exist"
+  exit 1
+fi
+
+# Verify the sealog destination directory exists before proceeding
+if [ ! -d ${SEALOGDIR} ]; then
+  echo "ERROR: the directory ${SEALOGDIR} does not exist"
   exit 1
 fi
 
@@ -59,18 +77,33 @@ for DATE in ${DATES[@]}; do
   echo "Processing ${year}-${month}-${day}"
 
   echo "Pulling data files from dlog1 to ${DLOG1DESTDIR} using rsync"
-  sshpass -p 'dsl!jason' rsync -avin -P -e ssh jason@198.17.154.201:/data/${DATE}_* ${DLOG1DESTDIR}
+  mkdir -p ${DLOG1DESTDIR}/${DATE}
+  sshpass -p 'dsl!jason' rsync -avin -P -e ssh jason@198.17.154.201:/data/${DATE}_* ${DLOG1DESTDIR}/${DATE}
 
   echo "Pulling *.DAT files from Navest to ${NAVESTDIR} using rsync"
   sshpass -p 'dsl!jason' rsync -avin -P -e ssh jason@198.17.154.225:/data/nav/${DATE}_*.DAT ${NAVESTDIR}
   echo ""
 
   echo "Pulling all files from framegrab to ${TIFGRABDIR} using rsync"
-  sshpass -p 'dsldata1' rsync -avin -P -e ssh data@198.17.154.194:/data/capture_${DATE} ${TIFGRABDIR}
+  if [ ! -e ${TIFGRABDIR}/${DATE}_previously_transferred_files.txt ]; then
+    touch ${TIFGRABDIR}/${DATE}_previously_transferred_files.txt
+  fi
+
+  sshpass -p 'dsldata1' rsync -avin -P -e ssh --exclude-from '${TIFGRABDIR}/${DATE}_previously_transferred_files.txt' data@198.17.154.194:/data/capture_${DATE} ${TIFGRABDIR} | tee ${TIFGRABDIR}/newly_transferred_files.txt
+
+  cat ${TIFGRABDIR}/newly_transferred_files.txt | grep '^<f++++++' | awk '{print $2}' >> ${TIFGRABDIR}/${DATE}_previously_transferred_files.txt
+  rm ${TIFGRABDIR}/newly_transferred_files.txt
+
+  sort -u ${TIFGRABDIR}/${DATE}_previously_transferred_files.txt > ${TIFGRABDIR}/${DATE}_previously_transferred_files.txt
+
   echo ""
 
   echo "Pulling video files from rec1 to ${H264RECORDINGDIR} using rsync"
-  sshpass -p 'dsl!inst' rsync -avin -P -e ssh --include="${DATE}*.txt" --include="${DATE}*.srt" --include="*${DATE}*.ts" --exclude="*" installer@198.17.154.198:/home/installer/src/CamDisplayStable201710/ ${H264RECORDINGDIR}
+  sshpass -p 'dsl!inst' rsync -avin -P -e ssh --include="${DATE}*.txt" --exclude="*" installer@198.17.154.198:/home/installer/src/CamDisplayStable201710/ ${H264RECORDINGDIR}/Metadata
+
+  sshpass -p 'dsl!inst' rsync -avin -P -e ssh --include="${DATE}*.srt" --exclude="*" installer@198.17.154.198:/home/installer/src/CamDisplayStable201710/ ${H264RECORDINGDIR}/Subtitles
+
+  sshpass -p 'dsl!inst' rsync -avin -P -e ssh --include="*${DATE}*.ts" --exclude="*" installer@198.17.154.198:/home/installer/src/CamDisplayStable201710/ ${H264RECORDINGDIR}/Videos
 done
 
 echo "Getting target files from Navest using rsync"
@@ -80,5 +113,9 @@ sshpass -p 'dsl!jason' rsync -avin -P -e ssh jason@198.17.154.225:/home/jason/cr
 echo "Getting map files from Navest using rsync"
 echo "Placing data files in the ${NAVESTDIR}/maps directory"
 sshpass -p 'dsl!jason' rsync -avin -P -e ssh jason@198.17.154.225:/home/jason/cruises/${NAVG_CRUISEID}/maps/ ${NAVESTDIR}/maps
+
+echo "Getting Sealog files from Sealog using rsync"
+echo "Placing data files in the ${SEALOGDIR} directory"
+sshpass -p 'dsl!jason' rsync -avin -P -e ssh jason@198.17.154.223:/home/jason/sealog-backup/${CRUISEID}/ ${SEALOGDIR}
 
 echo "done!"

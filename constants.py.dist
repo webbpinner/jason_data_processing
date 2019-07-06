@@ -8,13 +8,13 @@ serverURL = 'http://198.17.154.223:8000/sealog-server'
 token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjU5ODFmMTY3MjEyYjM0OGFlZDdmYTlmNSIsInNjb3BlIjpbImFkbWluIl0sInJvbGVzIjpbImFkbWluIiwiZXZlbnRfbWFuYWdlciIsImV2ZW50X2xvZ2dlciIsImV2ZW50X3dhdGNoZXIiLCJjcnVpc2VfbWFuYWdlciIsInRlbXBsYXRlX21hbmFnZXIiXSwiaWF0IjoxNTYwMzU4OTM3fQ.RUBJzVQ018_yGnq0hQE3f0IjornqJdtnusP96-uSvE4"
 
 # location of DSL scripts and other 3rd party tools used in the scripts created by the templates
-scriptDir = '/usr/local/bin'
+binDir = '/usr/local/bin'
 
 # directory where the templates are stored
 templatesDir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "templates")
 
 # base directory where all data is stored
-baseDir = '/Volumes/CruiseData'
+baseDir = '/Users/webbpinner/testJasonCruiseDir'
 
 # subdirectory within cruise data directory for storing raw data
 rawDir = 'RawData'
@@ -23,7 +23,7 @@ rawDir = 'RawData'
 procDir = 'ProcData'
 
 # sub-driectories created within the cruise directory
-cruiseSubDirs = ['Documentation', 'H264Recordings', 'Highlights', 'TIFgrabs', 'Nav', 'ppi_ppfx', 'scripts', 'Sealog', 'StillCamera', 'Vehicle', 'Vehicle/' + procDir, 'Vehicle/' + rawDir, 'Vehicle/' + rawDir + '/Navest', 'Vehicle/' + rawDir + '/Navest/maps', 'Vehicle/' + rawDir + '/Navest/targets', 'Vehicle/' + rawDir + '/Navest/backup', 'Vehicle/' + rawDir + '/Navest/backup/navest_ini', 'Vehicle/' + rawDir + '/Navest/backup/navg_ini', 'VirtualVan']
+cruiseSubDirs = ['Documentation', 'H264Recordings', 'Highlights', 'TIFgrabs', 'Nav', 'ppi_ppfx', 'Sealog', 'StillCamera', 'Vehicle', 'Vehicle/' + procDir, 'Vehicle/' + rawDir, 'Vehicle/' + rawDir + '/Navest', 'Vehicle/' + rawDir + '/Navest/maps', 'Vehicle/' + rawDir + '/Navest/targets', 'Vehicle/' + rawDir + '/Navest/backup', 'Vehicle/' + rawDir + '/Navest/backup/navest_ini', 'Vehicle/' + rawDir + '/Navest/backup/navg_ini', 'VirtualVan']
 
 # location of lowering directory within the cruise directory
 loweringBaseDir = 'Vehicle/' + procDir
@@ -32,7 +32,10 @@ loweringBaseDir = 'Vehicle/' + procDir
 loweringSubDirs = []
 
 # other directories within the cruise directory where a lowering sub-directory needs to be created
-otherLoweringBaseDirs = ['H264Recordings', 'TIFgrabs', 'Highlights', 'ppi_ppfx', 'scripts', 'StillCamera']
+otherLoweringBaseDirs = ['H264Recordings', 'TIFgrabs', 'Highlights', 'ppi_ppfx', 'StillCamera']
+
+# directory to save scripts to
+scriptDir = '~/Desktop/<cruise_id>_scripts'
 
 # name of template-derived script for pulling data from Navest and DLog to the cruise data directory
 cruiseDataRsyncScriptName = '<cruise_id>_pull_data_rsync_script.sh'
@@ -43,6 +46,25 @@ cruiseDataHourlyRsyncScriptName = '<cruise_id>_pull_data_hourly_rsync_script.sh'
 # name of template-derived script for rsync-ing the cruise data directory to one or more backup locations
 cruiseDataBackupRsyncScriptName = '<cruise_id>_backup_data_rsync_script.sh'
 
+# name of template-derived script for running the data_parse script for a particular lowering
+loweringProcDataScriptName = '<lowering_id>_proc_data_script.sh'
+
+# name of template-derived script for running the make_lowering_files script for a particular lowering
+loweringMakeLoweringFilesScriptName = '<lowering_id>_make_lowering_files.sh'
+
+# name of template-derived script for running the make_lowering script for a particular lowering
+loweringMakeLoweringScriptName = '<lowering_id>_make_lowering.sh'
+
+# name of template-derived script for processing Highlight and KiPro1080 video clips for a particular lowering
+loweringClipRenameScriptName = '<lowering_id>_proc_clips.sh'
+
+# name of template-derived script for processing SulisCam images for a particular lowering
+loweringSulisRenameScriptName = '<lowering_id>_proc_sulis.sh'
+
+# MASTER SET, Do not delete/uncomment/modify... make a copy, uncomment it and modify that!
+# dslogDataTypes = [ "ALT", "CSV", "CT1", "CT2", "CTM", "DEP", "EH1", "HFB", "HFP", "HFR", "HMR", "LSS", "O2", "OCT", "OOS", "SVP", "SYS"]
+
+dslogDataTypes = [ "ALT", "CSV", "CT1", "CT2", "CTM", "DEP", "EH1", "HFB", "HFP", "HFR", "HMR", "LSS", "O2", "OCT", "OOS", "SVP", "SYS"]
 # name of template-derived script for running the data_parse script for a particular lowering
 loweringProcDataScriptName = '<lowering_id>_proc_data_script.sh'
 

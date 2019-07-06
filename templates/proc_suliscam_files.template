@@ -1,0 +1,54 @@
+#####################################################################
+# This template builds a script to renames the SulisCam image files 
+# for the specified cruise data directory
+#
+# Created 2019/06/01 JWP
+#
+#####################################################################
+
+# Cruise directory
+CRUISEDIR=${BASEDIR}/${CRUISEID}
+
+# Verify the lowering directory for the still camera images exists
+# before proceeding
+if [ ! -d ${CRUISEDIR}/StillCamera/Unsorted ]; then
+	echo "ERROR: the directory ${CRUISEDIR}/StillCamera/Unsorted does not exist"
+	exit 1
+fi
+
+# Change the working directory to the directory containing the still
+# camera images for the specified lowering
+cd ${CRUISEDIR}/StillCamera/${LOWERINGID}/Unsorted
+
+# Loop through the DSC* files in the ${CRUISEDIR}/StillCamera/Unsorted
+# directory
+echo "Renaming files..."
+for file in DSC*; do
+
+	# pull the creation date from the image exif metadata
+	nd=`${SCRIPTDIR}/additional_scripts/exiftool.pl -CreateDate $i | cut -c35-53 | tr -d ": "`
+
+	# Build a new filename for the image
+	newname=sulis_{$nd}.jpg
+
+	# Rename the image
+	echo " - Renaming $file to $newname"
+	mv ${file} ${newname}
+
+done
+
+# Loop through the sulis_* files and move the ones taken during the lowering
+# from the Unsorted directory to the lowering directory.
+# Moving files for ${LOWERINGID} to the Lowering directory
+for file in sulis_*; do
+
+	# if the image datestamp in the filename is within the start/stop times of the dive, move it to the lowering directory
+	nd=`echo $file | awk -f '_' '{print $2}'`
+	if [[ ${nd} >= ${DIVE_START} && ${nd} <= ${DIVE_STOP} ]]; then
+		mv ${file} {CRUISEDIR}/StillCamera/${LOWERINGID}
+		echo "Moving $file to {CRUISEDIR}/StillCamera/${LOWERINGID}"
+	fi
+done
+
+# Return the working directory to it's previous value
+cd ${_D}

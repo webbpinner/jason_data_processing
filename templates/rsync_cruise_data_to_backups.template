@@ -9,20 +9,28 @@
 # Cruise directory
 CRUISEDIR=${BASEDIR}/${CRUISEID}
 
+# Lowerings to exclude from push to SciShare
+# i.e. "J2-1192" "J2-1193"
+EXCLUDE_LOWERINGS=()
+
+LOWERING_EXCLUDE=""
+for LOWERING in ${EXCLUDE_LOWERINGS[@]}; do
+	LOWERING_EXCLUDE='${LOWERING_EXCLUDE} --exclude="${LOWERING}" ' 
+
 # Verify the cruise directory exists before proceeding
 if [ ! -d ${CRUISEDIR} ]; then
   echo "ERROR: the directory ${CRUISEDIR} does not exist"
   exit 1
 fi
 
+echo "Transferring data to Ahi"
+sshpass -p 'dsl!admin' rsync -avin --delete -e ssh --exclude="scripts" ${LOWERING_EXCLUDE} ${CRUISEDIR} rsync://jason@198.17.154.239/SciShare/
+
 # Set the array of destinations to backup the cruise data to
 # Destinations can take the form of:
 #  - '/Volumes/Backup\ HD/' --> Backup to the root of an external HDD Named 'Backup HD'
 #  - '/Volumes/Backup\ HD/CRUISE_BACKUP/' --> Backup to the /CRUISE_BACKUP directory of an external HDD Named 'Backup HD'
 #  - 'user:pass@192.168.1.241:/cruise_data/' --> Backup to the /cruise_data directory of an remote Linux/Mac machine 
-
-echo "Transferring to Ahi"
-sshpass -p 'dsl!admin' rsync -avin -e ssh --exclude="scripts" /Volumes/CruiseData/at42-11 rsync://jason@198.17.154.239/SciShare/
 
 DESTINATIONS=()
 

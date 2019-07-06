@@ -22,10 +22,10 @@ DLOG1DESTDIR=${VEHICLEBASEDIR}/${RAWDIR}
 NAVESTDIR=${VEHICLEBASEDIR}/${RAWDIR}/Navest
 
 # H264 directory within the cruise data directory
-H264RECORDINGDIR=${BASEDIR}/${CRUISEID}/H264Recordings
+H264RECORDINGDIR=${BASEDIR}/${CRUISEID}/H264Recordings/Unsorted
 
 # TIFgrabs directory within the cruise data directory
-TIFGRABDIR=${BASEDIR}/${CRUISEID}/TIFgrabs
+TIFGRABDIR=${BASEDIR}/${CRUISEID}/TIFgrabs/Unsorted
 
 # Verify the dlog destination directory exists before proceeding
 if [ ! -d ${DLOG1DESTDIR} ]; then
@@ -43,6 +43,15 @@ fi
 if [ ! -d ${H264RECORDINGDIR} ]; then
   echo "ERROR: the directory ${H264RECORDINGDIR} does not exist"
   exit 1
+elif [ ! -d ${H264RECORDINGDIR}/Metadata ]; then
+  echo "ERROR: the directory ${H264RECORDINGDIR}/Metadata does not exist"
+  exit 1
+elif [ ! -d ${H264RECORDINGDIR}/Subtitles ]; then
+  echo "ERROR: the directory ${H264RECORDINGDIR}/Subtitles does not exist"
+  exit 1
+elif [ ! -d ${H264RECORDINGDIR}/Videos ]; then
+  echo "ERROR: the directory ${H264RECORDINGDIR}/Videos does not exist"
+  exit 1
 fi
 
 # Verify the tifgrab destination directory exists before proceeding
@@ -59,9 +68,17 @@ sshpass -p 'dsl!jason' ssh jason@198.17.154.201 "cd /data; find . -mmin -${THRES
 echo "Building list of .DAT files on navG machine that have changed in the last ${THRESHOLD} minutes"
 sshpass -p 'dsl!jason' ssh jason@198.17.154.225 "cd /data/nav; find . -mmin -${THRESHOLD} -name '*.DAT' -type f" | sed 's/^\.\///' > navest_rsync_filelist.txt
 
+# Build list of metadata files modified in the last ${THRESHOLD} minutes
+echo "Building list of metadata files on h264recorder machine that have changed in the last ${THRESHOLD} minutes"
+sshpass -p 'dsl!inst' ssh installer@198.17.154.198 "cd /home/installer/src/CamDisplayStable201710; find . -mmin -${THRESHOLD} -name '*.txt' -type f" > h264_metadata_rsync_filelist.txt
+
+# Build list of subtitle files modified in the last ${THRESHOLD} minutes
+echo "Building list of subtitle files on h264recorder machine that have changed in the last ${THRESHOLD} minutes"
+sshpass -p 'dsl!inst' ssh installer@198.17.154.198 "cd /home/installer/src/CamDisplayStable201710; find . -mmin -${THRESHOLD} -name '*.srt' -type f" > h264_subtitles_rsync_filelist.txt
+
 # Build list of video files modified in the last ${THRESHOLD} minutes
 echo "Building list of video files on h264recorder machine that have changed in the last ${THRESHOLD} minutes"
-sshpass -p 'dsl!inst' ssh installer@198.17.154.198 "cd /home/installer/src/CamDisplayStable201710; find . -mmin -${THRESHOLD} -type f" > h264_rsync_filelist.txt
+sshpass -p 'dsl!inst' ssh installer@198.17.154.198 "cd /home/installer/src/CamDisplayStable201710; find . -mmin -${THRESHOLD} -name '*.ts' -type f" > h264_videos_rsync_filelist.txt
 
 # Build list of image files modified in the last ${THRESHOLD} minutes
 echo "Building list of image files on framegrab machine that have changed in the last ${THRESHOLD} minutes"
@@ -96,16 +113,38 @@ echo "Getting map files from Navest using rsync"
 echo "Placing data files in the ${NAVESTDIR}/maps directory"
 sshpass -p 'dsl!jason' rsync -avin -P -e ssh jason@198.17.154.225:/home/jason/cruises/${NAVG_CRUISEID}/maps/ ${NAVESTDIR}/maps
 
-echo "Pulling data files to the ${H264RECORDINGDIR} directory"
-if [ -s h264_rsync_filelist.txt ]; then
+echo "Pulling metadata files to the ${H264RECORDINGDIR}/Metadata directory"
+if [ -s h264_metadata_rsync_filelist.txt ]; then
   # Rsync files modified in the last 60 minutes
-  sshpass -p 'dsl!inst' rsync -avin -P -e ssh --recursive --files-from=h264_rsync_filelist.txt installer@198.17.154.198:/home/installer/src/CamDisplayStable201710/ ${H264RECORDINGDIR}
+  sshpass -p 'dsl!inst' rsync -avin -P -e ssh --recursive --files-from=h264_rsync_filelist.txt installer@198.17.154.198:/home/installer/src/CamDisplayStable201710/ ${H264RECORDINGDIR}/Metadata
   echo ""
 else
-  echo "No files to pull"
+  echo "No metadata files to pull"
 fi
 
-rm h264_rsync_filelist.txt
+rm h264_metadata_rsync_filelist.txt
+
+echo "Pulling subtitles files to the ${H264RECORDINGDIR}/Subtitles directory"
+if [ -s h264_subtitles_rsync_filelist.txt ]; then
+  # Rsync files modified in the last 60 minutes
+  sshpass -p 'dsl!inst' rsync -avin -P -e ssh --recursive --files-from=h264_rsync_filelist.txt installer@198.17.154.198:/home/installer/src/CamDisplayStable201710/ ${H264RECORDINGDIR}/Subtitles
+  echo ""
+else
+  echo "No subtitle files to pull"
+fi
+
+rm h264_subtitles_rsync_filelist.txt
+
+echo "Pulling videos files to the ${H264RECORDINGDIR}/Videos directory"
+if [ -s h264_videos_rsync_filelist.txt ]; then
+  # Rsync files modified in the last 60 minutes
+  sshpass -p 'dsl!inst' rsync -avin -P -e ssh --recursive --files-from=h264_rsync_filelist.txt installer@198.17.154.198:/home/installer/src/CamDisplayStable201710/ ${H264RECORDINGDIR}/Videos
+  echo ""
+else
+  echo "No video files to pull"
+fi
+
+rm h264_videos_rsync_filelist.txt
 
 echo "Pulling tif files to the ${TIFGRABDIR} directory"
 if [ -s tif_rsync_filelist.txt ]; then
